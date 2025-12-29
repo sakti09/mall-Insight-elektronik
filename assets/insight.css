@@ -128,9 +128,9 @@ div[data-testid="stDataFrame"] {
 
 
 
-/* =========================================================
-   CLUSTER PAGE (pages/2_cluster.py)
-/* insight.css — khusus halaman 2_cluster.py */
+/* insight.css — styling khusus halaman 2_cluster.py */
+
+/* KPI khusus cluster page */
 .kpi-cluster{
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.10);
@@ -138,52 +138,85 @@ div[data-testid="stDataFrame"] {
   padding: 14px 16px;
   margin: 6px 0 10px 0;
 }
+.kpi-cluster .kpi-title{ font-size: 12px; opacity: 0.80; letter-spacing: 0.2px; }
+.kpi-cluster .kpi-value{ font-size: 22px; font-weight: 700; margin-top: 6px; }
+.kpi-cluster .kpi-sub{ font-size: 12px; opacity: 0.70; margin-top: 4px; }
 
-.kpi-cluster .kpi-title{
-  font-size: 12px;
-  opacity: 0.80;
-  letter-spacing: 0.2px;
-}
-
-.kpi-cluster .kpi-value{
-  font-size: 22px;
-  font-weight: 700;
-  margin-top: 6px;
-}
-
-.kpi-cluster .kpi-sub{
-  font-size: 12px;
-  opacity: 0.70;
-  margin-top: 4px;
-}
-
-/* Insight box: tambahkan class "insight-cluster" di 2_cluster.py agar tidak bentrok */
-.insight-cluster{
+/* quote box */
+.quote-box{
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
+  margin: 10px 0 16px 0;
+  font-style: italic;
+  line-height: 1.6;
+  opacity: 0.95;
 }
 
-.insight-cluster .insight-title{
+/* judul panel */
+.panel-title{
   font-weight: 700;
-  margin: 8px 0 6px 0;
+  margin: 6px 0 10px 0;
 }
 
-.insight-cluster .insight-text{
-  opacity: 0.88;
-  line-height: 1.55;
+/* wrapper tabel */
+.table-wrap{
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 10px 12px;
 }
 
-.insight-cluster .insight-list{
-  margin-top: 8px;
-  padding-left: 18px;
+/* tabel cluster: kontrol lebar kolom biar keterangan tidak kepotong */
+.cluster-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
 }
 
-.insight-cluster .insight-list li{
-  margin: 6px 0;
-  line-height: 1.5;
+.cluster-table thead th{
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  opacity: 0.9;
 }
 
+.cluster-table th,
+.cluster-table td{
+  padding: 10px 8px;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  word-wrap: break-word;
+}
 
+.cluster-table tbody tr:last-child td{
+  border-bottom: none;
+}
 
+/* kolom cluster dipersempit */
+.th-cluster,
+.td-cluster{
+  width: 60px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* kolom judul */
+.td-judul{
+  width: 220px;
+  font-weight: 600;
+}
+
+/* kolom inti */
+.td-inti{
+  width: 180px;
+  opacity: 0.9;
+}
+
+/* kolom keterangan dibuat paling lebar */
+.td-keterangan{
+  width: auto;
+  line-height: 1.6;
+}
