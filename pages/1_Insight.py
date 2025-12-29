@@ -3,29 +3,12 @@ import pandas as pd
 
 st.set_page_config(page_title="Insight", layout="wide")
 
-# Load data
-uploaded = st.file_uploader("Upload CSV (final insight)", type=["csv"])
-if not uploaded:
-    st.info("Upload CSV dulu untuk melihat dashboard insight.")
-    st.stop()
-
-df = pd.read_csv(uploaded)
-
-st.title("Page 1 — Insight Dashboard")
-
-# Simple subpage router (inside Page 1)
-if "insight_subpage" not in st.session_state:
-    st.session_state.insight_subpage = "home"
-
-def go(page_name: str):
-    st.session_state.insight_subpage = page_name
-
-
-# UI: green clickable cards
+#CSS
 def inject_card_css():
     st.markdown(
         """
         <style>
+        /* tombol streamlit jadi kartu */
         div.stButton > button {
             width: 100%;
             height: 90px;
@@ -38,6 +21,7 @@ def inject_card_css():
             box-shadow: 0 6px 18px rgba(0,0,0,0.08);
             text-align: left;
             padding: 14px 16px;
+            white-space: pre-line; /* biar \n jalan */
         }
         div.stButton > button:hover {
             filter: brightness(0.98);
@@ -48,14 +32,32 @@ def inject_card_css():
         unsafe_allow_html=True,
     )
 
+inject_card_css()
+
+st.title("Page 1 — Insight Dashboard")
+
+# Load data
+uploaded = st.file_uploader("Upload CSV (final insight)", type=["csv"])
+if not uploaded:
+    st.info("Upload CSV dulu untuk melihat dashboard insight.")
+    st.stop()
+
+df = pd.read_csv(uploaded)
+
+
+# Router subpage (dalam Page 1)
+if "insight_subpage" not in st.session_state:
+    st.session_state.insight_subpage = "home"
+
+def go(page_name: str):
+    st.session_state.insight_subpage = page_name
+
 def card_button(label: str, emoji: str, key: str, on_click_page: str, disabled=False):
-    # tombolnya kita bikin kayak kartu
     btn_label = f"{emoji}  {label}\n\nKlik untuk buka"
     if st.button(btn_label, key=key, disabled=disabled, use_container_width=True):
         go(on_click_page)
 
-
-# HOME (grid of 10 icons)
+# HOME (grid 10 kartu)
 if st.session_state.insight_subpage == "home":
     st.subheader("Menu (Page 1)")
     st.caption("Klik kartu di bawah untuk membuka sub-halaman (masih di Page 1).")
@@ -84,7 +86,9 @@ if st.session_state.insight_subpage == "home":
     with cols2[4]:
         card_button("10) Placeholder", "⚙️", "card_10", "todo_10", disabled=True)
 
-
+    st.markdown("---")
+    st.write("Preview cepat dataset (top 5):")
+    st.dataframe(df.head(5), use_container_width=True)
 
 # SUBPAGE: VIEW DATASET
 elif st.session_state.insight_subpage == "view_dataset":
@@ -109,7 +113,8 @@ elif st.session_state.insight_subpage == "view_dataset":
     c1, c2, c3 = st.columns([2, 1, 2])
 
     with c1:
-        sort_by = st.selectbox("Sort by column", options=sort_cols, index=sort_cols.index("age") if "age" in sort_cols else 0)
+        default_idx = sort_cols.index("age") if "age" in sort_cols else 0
+        sort_by = st.selectbox("Sort by column", options=sort_cols, index=default_idx)
     with c2:
         ascending = st.radio("Order", options=["Ascending", "Descending"], horizontal=True)
     with c3:
@@ -118,6 +123,16 @@ elif st.session_state.insight_subpage == "view_dataset":
     df_sorted = df.sort_values(by=sort_by, ascending=(ascending == "Ascending"))
     st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=360)
 
+
+# SUBPAGE: INSIGHT PARAM 
+elif st.session_state.insight_subpage == "insight_param":
+    topbar = st.columns([1, 6])
+    with topbar[0]:
+        if st.button("⬅️ Back", use_container_width=True):
+            go("home")
+    with topbar[1]:
+        st.subheader("Insight by Parameter (Coming soon)")
+    st.info("Nanti di sini kita isi chart + filter parameter.")
+
 else:
-    # fallback
     go("home")
