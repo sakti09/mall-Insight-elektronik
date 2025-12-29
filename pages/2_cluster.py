@@ -4,19 +4,16 @@ import numpy as np
 import plotly.express as px
 from pathlib import Path
 
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+
 st.set_page_config(page_title="Cluster", layout="wide")
-
-
-# LOAD CSS (pakai insight.css)
-def load_css(path: str = "assets/insight.css"):
-    css_path = Path(path)
-    if css_path.exists():
-        st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
-
-load_css()
 
 st.title("Page 2 — Cluster Dashboard")
 st.caption("Visualisasi hasil clustering dari CSV (best model).")
+
 
 # HELPERS
 def pick_col(df, candidates):
@@ -266,4 +263,4 @@ else:
     st.info("Tidak menemukan kolom embedding 2D (pc1/pc2, pca1/pca2, tsne1/tsne2, umap1/umap2). Kalau ada, scatter akan muncul otomatis.")
 
 st.markdown("---")
-st.caption("Tip: kalau kamu mau, kita bisa buat juga 'Cluster Persona' per cluster (Top category, top mall, avg spend, dll).")
+
