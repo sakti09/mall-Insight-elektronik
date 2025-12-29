@@ -221,13 +221,13 @@ cluster_table = pd.DataFrame(
             "Cluster": "2",
             "Judul": "Stable Mature Customers",
             "Inti": "Dewasa, konsisten",
-            "Keterangan": "Pelanggan dewasa dengan pola belanja yang konsisten dan terencana. Cocok untuk strategi membership dan personalisasi penawaran."
+            "Keterangan": "Pelanggan dewasa dengan pola belanja yang stabil, ditandai oleh jumlah pembelian dan nilai transaksi yang relatif seimbang. Karakteristik ini menunjukkan perilaku belanja yang cenderung rasional dan berorientasi kebutuhan, bukan dorongan sesaat. Cocok untuk strategi membership dan personalisasi penawaran."
         },
         {
             "Cluster": "3",
             "Judul": "Impulse Young Shoppers",
             "Inti": "Muda, impulsif",
-            "Keterangan": "Pelanggan muda dengan nilai belanja rendah dan pembelian cepat. Umumnya membeli karena kebutuhan kecil atau dorongan impulsif."
+            "Keterangan": "Pelanggan muda dengan nilai belanja rendah dan jumlah item sedikit. Pola ini mengindikasikan pembelian sederhana atau bersifat impulsif."
         },
         {
             "Cluster": "4",
