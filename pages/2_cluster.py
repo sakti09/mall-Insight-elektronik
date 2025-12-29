@@ -56,10 +56,7 @@ def safe_value_counts(s: pd.Series):
 
 # upload data cluster
 st.sidebar.header("Upload Data")
-uploaded = st.sidebar.file_uploader(
-    "Upload CSV hasil clustering (FCM)",
-    type=["csv"]
-)
+uploaded = st.sidebar.file_uploader("Upload CSV hasil clustering (FCM)", type=["csv"])
 
 if uploaded is None:
     st.info("Silakan upload file CSV hasil clustering.")
@@ -71,9 +68,6 @@ st.sidebar.success("CSV berhasil diupload")
 # deteksi kolom penting
 cluster_col = pick_col(df, ["cluster", "cluster_label", "class"])
 spend_col   = pick_col(df, ["total_spent", "total_spend", "spend", "amount"])
-cat_col     = pick_col(df, ["category", "kategori"])
-gender_col  = pick_col(df, ["gender"])
-mall_col    = pick_col(df, ["shopping_mall", "mall"])
 
 if cluster_col is None:
     st.error("Kolom cluster tidak ditemukan.")
@@ -83,27 +77,11 @@ df[cluster_col] = df[cluster_col].astype(str)
 
 # filter data
 st.sidebar.header("Filters")
-
 clusters = sorted(df[cluster_col].unique().tolist())
 selected_clusters = st.sidebar.multiselect("Cluster", clusters, clusters)
 
 df_f = df.copy()
 df_f = df_f[df_f[cluster_col].isin(selected_clusters)]
-
-if cat_col:
-    cats = sorted(df_f[cat_col].astype(str).unique().tolist())
-    selected_cats = st.sidebar.multiselect("Category", cats, cats)
-    df_f = df_f[df_f[cat_col].astype(str).isin(selected_cats)]
-
-if gender_col:
-    genders = sorted(df_f[gender_col].astype(str).unique().tolist())
-    selected_gender = st.sidebar.multiselect("Gender", genders, genders)
-    df_f = df_f[df_f[gender_col].astype(str).isin(selected_gender)]
-
-if mall_col:
-    malls = sorted(df_f[mall_col].astype(str).unique().tolist())
-    selected_malls = st.sidebar.multiselect("Shopping Mall", malls, malls)
-    df_f = df_f[df_f[mall_col].astype(str).isin(selected_malls)]
 
 st.sidebar.caption(f"Filtered rows: {len(df_f):,} / {len(df):,}")
 
@@ -191,7 +169,37 @@ cluster_table = pd.DataFrame(
 )
 
 st.markdown("<div class='panel-title'>Ringkasan Profil Cluster</div>", unsafe_allow_html=True)
-st.dataframe(cluster_table, use_container_width=True, hide_index=True)
 
+rows_html = ""
+for _, r in cluster_table.iterrows():
+    rows_html += f"""
+    <tr>
+        <td class="td-cluster">{r['Cluster']}</td>
+        <td class="td-judul">{r['Judul']}</td>
+        <td class="td-inti">{r['Inti']}</td>
+        <td class="td-keterangan">{r['Keterangan']}</td>
+    </tr>
+    """
+
+st.markdown(
+    f"""
+    <div class="table-wrap">
+        <table class="cluster-table">
+            <thead>
+                <tr>
+                    <th class="th-cluster">Cluster</th>
+                    <th>Judul</th>
+                    <th>Inti</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.caption("Data sumber: CSV hasil clustering Fuzzy C-Means")
