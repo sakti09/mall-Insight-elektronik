@@ -1,28 +1,22 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 from pathlib import Path
 
 st.set_page_config(page_title="Cluster", layout="wide")
 
-# load css khusus cluster
+# load css khusus halaman cluster
 def load_css(css_path: str):
     p = Path(css_path)
     if p.exists():
-        st.markdown(
-            f"<style>{p.read_text(encoding='utf-8')}</style>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<style>{p.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 load_css("assets/insight.css")
 
 st.title("Cluster Dashboard")
-st.caption("Visualisasi hasil clustering Fuzzy C-Means (best model) dan insight bisnis berbasis mall.")
+st.caption("Visualisasi hasil clustering Fuzzy C-Means dan interpretasi cluster.")
 
-# -------------------------
-# helper functions
-# -------------------------
+# fungsi bantu
 def pick_col(df, candidates):
     lower_map = {c.lower(): c for c in df.columns}
     for cand in candidates:
@@ -60,190 +54,149 @@ def render_kpi(title: str, value: str, subtitle: str = ""):
 def safe_value_counts(s: pd.Series):
     return s.astype(str).fillna("NaN").value_counts()
 
-# -------------------------
-# sidebar — data source
-# -------------------------
-st.sidebar.header("Data Source")
-
-default_path = st.sidebar.text_input(
-    "Path CSV hasil clustering",
-    value="assets/customer_fcm_best_model.csv",
-    help="Contoh: assets/customer_fcm_best_model.csv"
+# upload data cluster
+st.sidebar.header("Upload Data")
+uploaded = st.sidebar.file_uploader(
+    "Upload CSV hasil clustering (FCM)",
+    type=["csv"]
 )
 
-use_repo_file = st.sidebar.checkbox("Pakai file dari repo", value=True)
+if uploaded is None:
+    st.info("Silakan upload file CSV hasil clustering.")
+    st.stop()
 
-df = None
-if use_repo_file and Path(default_path).exists():
-    df = pd.read_csv(default_path)
-    st.sidebar.success(f"Loaded: {default_path}")
-else:
-    uploaded = st.sidebar.file_uploader("Upload CSV hasil cluster", type=["csv"])
-    if not uploaded:
-        st.info("Upload CSV hasil clustering atau simpan file di repo.")
-        st.stop()
-    df = pd.read_csv(uploaded)
-    st.sidebar.success("Loaded: uploaded CSV")
+df = pd.read_csv(uploaded)
+st.sidebar.success("CSV berhasil diupload")
 
-# -------------------------
-# detect important columns
-# -------------------------
+# deteksi kolom penting
 cluster_col = pick_col(df, ["cluster", "cluster_label", "class"])
-age_col     = pick_col(df, ["age", "umur"])
-qty_col     = pick_col(df, ["quantity", "qty"])
-price_col   = pick_col(df, ["price"])
 spend_col   = pick_col(df, ["total_spent", "total_spend", "spend", "amount"])
 cat_col     = pick_col(df, ["category", "kategori"])
 gender_col  = pick_col(df, ["gender"])
-pay_col     = pick_col(df, ["payment_method", "payment"])
 mall_col    = pick_col(df, ["shopping_mall", "mall"])
 
 if cluster_col is None:
-    st.error("Kolom cluster tidak ditemukan di CSV.")
+    st.error("Kolom cluster tidak ditemukan.")
     st.stop()
 
 df[cluster_col] = df[cluster_col].astype(str)
 
-# -------------------------
-# sidebar — filters
-# -------------------------
+# filter data
 st.sidebar.header("Filters")
 
 clusters = sorted(df[cluster_col].unique().tolist())
-selected_clusters = st.sidebar.multiselect(
-    "Cluster",
-    options=clusters,
-    default=clusters
-)
+selected_clusters = st.sidebar.multiselect("Cluster", clusters, clusters)
 
 df_f = df.copy()
-if selected_clusters:
-    df_f = df_f[df_f[cluster_col].isin(selected_clusters)]
+df_f = df_f[df_f[cluster_col].isin(selected_clusters)]
 
-if cat_col is not None:
+if cat_col:
     cats = sorted(df_f[cat_col].astype(str).unique().tolist())
     selected_cats = st.sidebar.multiselect("Category", cats, cats)
     df_f = df_f[df_f[cat_col].astype(str).isin(selected_cats)]
 
-if gender_col is not None:
+if gender_col:
     genders = sorted(df_f[gender_col].astype(str).unique().tolist())
     selected_gender = st.sidebar.multiselect("Gender", genders, genders)
     df_f = df_f[df_f[gender_col].astype(str).isin(selected_gender)]
 
-if mall_col is not None:
+if mall_col:
     malls = sorted(df_f[mall_col].astype(str).unique().tolist())
     selected_malls = st.sidebar.multiselect("Shopping Mall", malls, malls)
     df_f = df_f[df_f[mall_col].astype(str).isin(selected_malls)]
 
 st.sidebar.caption(f"Filtered rows: {len(df_f):,} / {len(df):,}")
 
-# -------------------------
-# preview
-# -------------------------
+# preview data
 with st.expander("Preview data (head)", expanded=False):
     st.dataframe(df_f.head(25), use_container_width=True)
 
-# -------------------------
-# KPI section
-# -------------------------
+# ringkasan KPI
 st.subheader("Ringkasan")
 
 k1, k2, k3, k4 = st.columns(4)
-
 with k1:
     render_kpi("Jumlah Data", fmt_int(len(df_f)))
-
 with k2:
     render_kpi("Jumlah Cluster", fmt_int(len(selected_clusters)))
-
 with k3:
-    if spend_col:
-        render_kpi("Total Spend", fmt_money(ensure_numeric(df_f[spend_col]).sum()))
-    else:
-        render_kpi("Total Spend", "-")
-
+    render_kpi("Total Spend", fmt_money(ensure_numeric(df_f[spend_col]).sum()) if spend_col else "-")
 with k4:
-    if spend_col:
-        render_kpi("Rata-rata Spend", fmt_money(ensure_numeric(df_f[spend_col]).mean()))
-    else:
-        render_kpi("Rata-rata Spend", "-")
+    render_kpi("Rata-rata Spend", fmt_money(ensure_numeric(df_f[spend_col]).mean()) if spend_col else "-")
 
-st.markdown("---")
-
-# -------------------------
-# cluster overview
-# -------------------------
+# visual overview cluster
 st.subheader("Cluster Overview")
 
-c_left, c_right = st.columns(2)
+left, right = st.columns(2)
 
-with c_left:
+with left:
     vc = safe_value_counts(df_f[cluster_col]).reset_index()
     vc.columns = [cluster_col, "count"]
     fig = px.bar(vc, x=cluster_col, y="count", title="Jumlah Data per Cluster")
     st.plotly_chart(fig, use_container_width=True)
 
-with c_right:
+with right:
     if spend_col:
-        grp = (
-            df_f.groupby(cluster_col)[spend_col]
-            .sum()
-            .reset_index()
-            .sort_values(spend_col, ascending=False)
-        )
+        grp = df_f.groupby(cluster_col)[spend_col].sum().reset_index()
         fig = px.bar(grp, x=cluster_col, y=spend_col, title="Total Spend per Cluster")
         st.plotly_chart(fig, use_container_width=True)
 
-# -------------------------
-# mall insight
-# -------------------------
-st.markdown("---")
-st.subheader("Mall Insight")
+# interpretasi cluster
+st.subheader("Interpretasi Cluster")
 
-if mall_col:
-    focus_mall = st.selectbox(
-        "Pilih mall fokus",
-        sorted(df_f[mall_col].astype(str).unique().tolist()),
-    )
+st.markdown(
+    """
+    <div class="quote-box">
+        “Cluster terbentuk dari kombinasi usia dan perilaku belanja, sehingga masing-masing cluster merepresentasikan
+        tipe pelanggan yang berbeda, mulai dari pelanggan impulsif bernilai rendah hingga pelanggan premium bernilai tinggi.”
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-    mall_df = df_f[df_f[mall_col].astype(str) == str(focus_mall)]
+# tabel ringkas cluster
+cluster_table = pd.DataFrame([
+    {"Cluster": "0", "Judul": "Senior Practical Shoppers", "Inti": "Tua, belanja sedikit, stabil"},
+    {"Cluster": "1", "Judul": "Active Young Buyers", "Inti": "Muda, aktif, potensial"},
+    {"Cluster": "2", "Judul": "Stable Mature Customers", "Inti": "Dewasa, konsisten"},
+    {"Cluster": "3", "Judul": "Impulse Young Shoppers", "Inti": "Muda, impulsif"},
+    {"Cluster": "4", "Judul": "Premium High-Value Customers", "Inti": "Sedikit tapi sangat bernilai"},
+])
 
-    if len(mall_df) > 0:
-        a, b, c = st.columns(3)
-        with a:
-            render_kpi("Jumlah Transaksi", fmt_int(len(mall_df)))
-        with b:
-            if spend_col:
-                render_kpi("Avg Spend", fmt_money(ensure_numeric(mall_df[spend_col]).mean()))
-        with c:
-            render_kpi("Cluster Dominan", safe_value_counts(mall_df[cluster_col]).idxmax())
+# deskripsi tiap cluster
+cluster_desc = {
+    "0": "Pelanggan berusia lebih tua dengan pembelian rendah dan selektif. Stabil namun kontribusi nilai relatif kecil.",
+    "1": "Pelanggan muda yang aktif dan potensial untuk dikembangkan menjadi loyal customer.",
+    "2": "Pelanggan dewasa dengan pola belanja konsisten dan terencana.",
+    "3": "Pelanggan muda dengan belanja impulsif dan nilai rendah.",
+    "4": "Pelanggan bernilai tinggi dengan kontribusi revenue paling besar."
+}
 
-        mall_counts = safe_value_counts(mall_df[cluster_col]).reset_index()
-        mall_counts.columns = [cluster_col, "count"]
-        fig = px.bar(mall_counts, x=cluster_col, y="count",
-                     title=f"Distribusi Cluster di {focus_mall}")
-        st.plotly_chart(fig, use_container_width=True)
+colA, colB = st.columns([1.05, 1.25])
 
-        with st.expander("Rekomendasi Strategi Bisnis", expanded=True):
-            st.markdown(
-                """
-                <div class="insight-cluster">
-                    <div class="insight-title">Tujuan</div>
-                    <div class="insight-text">
-                        Meningkatkan nilai belanja per transaksi pada mall dengan volume kunjungan tinggi,
-                        khususnya dari segmen pelanggan low dan medium spender.
-                    </div>
-                    <div class="insight-title">Strategi yang Disarankan</div>
-                    <ul class="insight-list">
-                        <li>Bundling produk lintas kategori (contoh: Clothing + Shoes).</li>
-                        <li>Promosi berbasis kuantitas seperti beli 2 gratis 1.</li>
-                        <li>Diskon bertingkat berdasarkan total belanja.</li>
-                        <li>Cross-selling produk pelengkap di kasir.</li>
-                    </ul>
+with colA:
+    st.markdown("<div class='panel-title'>Tabel Ringkas Cluster</div>", unsafe_allow_html=True)
+    st.dataframe(cluster_table, use_container_width=True, hide_index=True)
+
+with colB:
+    st.markdown("<div class='panel-title'>Keterangan Tiap Cluster</div>", unsafe_allow_html=True)
+    for cid in ["0", "1", "2", "3", "4"]:
+        title = cluster_table.loc[cluster_table["Cluster"] == cid, "Judul"].iloc[0]
+        core = cluster_table.loc[cluster_table["Cluster"] == cid, "Inti"].iloc[0]
+        desc = cluster_desc[cid]
+
+        st.markdown(
+            f"""
+            <div class="cluster-card c{cid}">
+                <div class="cluster-head">
+                    <div class="cluster-badge">Cluster {cid}</div>
+                    <div class="cluster-title">{title}</div>
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+                <div class="cluster-core">{core}</div>
+                <div class="cluster-desc">{desc}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-st.markdown("---")
-st.caption("Data sumber: customer_fcm_best_model.csv")
+st.caption("Data sumber: CSV hasil clustering Fuzzy C-Means")
