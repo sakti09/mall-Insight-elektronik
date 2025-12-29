@@ -286,9 +286,26 @@ elif st.session_state.insight_subpage == "trend_yearly":
         group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
         group_by = st.selectbox("Group by", options=group_by_options, index=0)
 
-        sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_sort")
+        # ✅ sorting untuk urutan kategori
+        sort_metric = st.radio(
+            "Sort by (urutkan kategori)",
+            ["Total Spend", "Jumlah Transaksi"],
+            horizontal=True,
+            key="y_sort"
+        )
+
+        # ✅ ini kunci: bar chart metriknya bisa berubah
+        bar_metric = st.radio(
+            "Bar berdasarkan",
+            ["Total Spend", "Jumlah Transaksi"],
+            horizontal=True,
+            key="y_bar_metric"
+        )
+
         top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True, key="y_top_mode")
         top_n = st.slider("Top N", 5, 25, 10, disabled=(top_mode == "All"), key="y_top_n")
+
+        # Pie tetap bisa dipilih
         pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_pie")
 
     df_global = apply_filters(df, filter_state)
@@ -319,25 +336,38 @@ elif st.session_state.insight_subpage == "trend_yearly":
                 return
 
             insight = insight_by(df_y, group_by)
-            insight = insight.sort_values("transaksi_count" if sort_metric == "Jumlah Transaksi" else "total_spend_sum", ascending=False)
+
+            # ✅ sorting kategori sesuai pilihan sort_metric
+            sort_col = "total_spend_sum" if sort_metric == "Total Spend" else "transaksi_count"
+            insight = insight.sort_values(sort_col, ascending=False)
+
             if top_mode == "Top N":
                 insight = insight.head(top_n)
 
             rot = smart_xtick_rotation(insight[group_by].tolist())
 
+            # ✅ BAR chart: metriknya ikut bar_metric
+            y_col = "total_spend_sum" if bar_metric == "Total Spend" else "transaksi_count"
+            bar_title = "Total Spend" if bar_metric == "Total Spend" else "Jumlah Transaksi"
+
             fig_bar = px.bar(
-                insight, x=group_by, y="total_spend_sum",
-                hover_data=["transaksi_count", "total_spend_avg"],
-                title="Total Spend",
+                insight,
+                x=group_by,
+                y=y_col,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=bar_title,
                 color_discrete_sequence=bar_colors
             )
             fig_bar.update_xaxes(tickangle=rot)
             fig_bar.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
             st.plotly_chart(fig_bar, use_container_width=True)
 
+            # ✅ PIE chart: metriknya ikut pie_metric
             pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
             fig_pie = px.pie(
-                insight, names=group_by, values=pie_value_col,
+                insight,
+                names=group_by,
+                values=pie_value_col,
                 hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
                 title=f"Share {pie_metric}",
                 color_discrete_sequence=pie_colors
@@ -352,6 +382,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
         panel_year(c2021, 2021)
         panel_year(c2022, 2022)
         panel_year(c2023, 2023)
+
 
 else:
     go("home")
