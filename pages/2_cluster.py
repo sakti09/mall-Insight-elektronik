@@ -166,9 +166,13 @@ cluster_table = pd.DataFrame([
 # deskripsi tiap cluster
 cluster_desc = {
     "0": "Pelanggan berusia lebih tua dengan pembelian rendah dan selektif. Stabil namun kontribusi nilai relatif kecil.",
+    "": ,
     "1": "Pelanggan muda yang aktif dan potensial untuk dikembangkan menjadi loyal customer.",
+    "": ,
     "2": "Pelanggan dewasa dengan pola belanja konsisten dan terencana.",
+    "": ,
     "3": "Pelanggan muda dengan belanja impulsif dan nilai rendah.",
+    "": ,
     "4": "Pelanggan bernilai tinggi dengan kontribusi revenue paling besar."
 }
 
