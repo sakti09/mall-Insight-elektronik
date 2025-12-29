@@ -64,3 +64,26 @@ div[data-testid="stDataFrame"] {
 }
 
 
+
+
+
+
+
+
+/* ===== Monthly Trend (Menu 4) tweaks ===== */
+.month-title {
+  font-weight: 900;
+  font-size: 15px;
+  margin-bottom: 6px;
+  color: #1F3020;
+}
+
+.month-panel {
+  border-radius: 16px;
+  padding: 10px 10px 6px 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(105,138,107,0.10), rgba(169,194,170,0.10));
+}
+
