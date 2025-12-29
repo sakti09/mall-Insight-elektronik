@@ -66,14 +66,14 @@ div[data-testid="stDataFrame"] {
 
 /* ===== Smaller KPI for Year Panels ===== */
 .year-panel .kpi-value {
-  font-size: 10px !important;   
+  font-size: 5px !important;   
   line-height: 1.1 !important;
 }
 .year-panel .kpi-title {
-  font-size: 6px !important;
+  font-size: 11px !important;
 }
 .year-panel .kpi-sub {
-  font-size: 6px !important;
+  font-size: 8px !important;
 }
 .year-panel .kpi-wrap {
   padding: 10px 10px !important;
