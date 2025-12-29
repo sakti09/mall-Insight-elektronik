@@ -3,54 +3,71 @@ from pathlib import Path
 
 st.set_page_config(page_title="Mall Insight", layout="wide")
 
-def load_css(path: str = "assets/mainpage.css"):
+# =========================
+# LOAD CSS (PAKAI insight.css, bukan mainpage.css)
+# =========================
+def load_css(path: str = "assets/insight.css"):
     css_path = Path(path)
     if css_path.exists():
         st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
-    else:
-        st.warning(f"CSS file tidak ditemukan: {path}")
 
 load_css()
 
-st.markdown('<div class="hero">', unsafe_allow_html=True)
+# =========================
+# HEADER
+# =========================
+st.title("Mall Insight Dashboard")
+st.caption("Landing page utama. Gunakan sidebar kiri untuk memilih halaman analisis.")
 
-c1, c2 = st.columns([1.2, 1], gap="large")
-
-with c1:
-    st.title("Mall Insight Dashboard")
-    st.caption("Landing page utama (metalik hijau). Pilih halaman lain lewat sidebar, atau klik tombol di bawah.")
-
-    st.markdown('<div class="info-card">', unsafe_allow_html=True)
-    st.markdown(
-        """
-        **Yang ada di project ini:**
-        - Page 1: Insight (menu View Dataset, Insight by Parameter, Tren Tahunan, Tren Bulanan)
-        - Page lainnya: bisa kamu tambah nanti (misal Correlation / Heatmap, Focus Category, dll)
-        """,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.write("")
-    st.button("➡️ Buka halaman Insight (Page 1)", use_container_width=True)
-
-with c2:
-    st.subheader("Preview / Banner")
-
-    # OPSI A (disarankan): taruh gambar di repo, misalnya: assets/banner.png
-    local_img = Path("assets/banner.png")
-
-    # OPSI B: kalau kamu taruh di GitHub dan mau pakai URL RAW
-    # Ganti string di bawah dengan link RAW gambar kamu
-    IMAGE_URL = ""  # contoh: "https://raw.githubusercontent.com/<user>/<repo>/main/assets/banner.png"
-
-    if local_img.exists():
-        st.image(str(local_img), use_container_width=True)
-    elif IMAGE_URL.strip():
-        st.image(IMAGE_URL.strip(), use_container_width=True)
-    else:
-        st.info("Taruh gambar di `assets/banner.png` atau isi IMAGE_URL (raw GitHub).")
-
-st.markdown("</div>", unsafe_allow_html=True)
+# =========================
+# INFO BOX (gunakan class landing-box dari CSS)
+# =========================
+st.markdown(
+    """
+    <div class="landing-box">
+        <div style="font-weight:900; font-size:16px; margin-bottom:6px; color:#1F3020;">
+            Panduan Cepat
+        </div>
+        <div style="color:rgba(31,48,32,0.85); line-height:1.55;">
+            <b>Mulai dari:</b> <u>Insight (Page 1)</u><br/>
+            Di dalamnya ada:
+            <ul style="margin:8px 0 0 18px;">
+              <li>View Dataset</li>
+              <li>Insight by Parameter</li>
+              <li>Tren Tahunan</li>
+              <li>Tren Bulanan</li>
+            </ul>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.write("")
-st.caption("Tip: Sidebar kiri → pilih halaman `Insight` (Page 1).")
+
+# =========================
+# QUICK LINK KE PAGE INSIGHT (kalau tersedia)
+# =========================
+col1, col2 = st.columns([1, 1], gap="large")
+
+with col1:
+    st.subheader("Quick Access")
+    st.write("Klik untuk langsung menuju halaman Insight.")
+
+    # Streamlit baru punya page_link. Kalau versi kamu belum support, fallback ke info.
+    try:
+        st.page_link("pages/1_Insight.py", label="➡️ Buka Insight (Page 1)", use_container_width=True)
+    except Exception:
+        st.info("Buka halaman **Insight (Page 1)** dari sidebar kiri (Pages).")
+
+with col2:
+    st.subheader("Preview")
+    # Optional: taruh banner lokal
+    banner = Path("assets/banner.png")
+    if banner.exists():
+        st.image(str(banner), use_container_width=True)
+    else:
+        st.caption("Opsional: taruh gambar di `assets/banner.png` untuk banner.")
+
+st.write("")
+st.caption("Catatan: jika tombol quick link tidak muncul, gunakan sidebar kiri → pilih halaman `Insight (Page 1)`.")
