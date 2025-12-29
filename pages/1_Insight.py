@@ -90,17 +90,6 @@ def inject_css():
             font-weight: 700;
             color: #1F3020;
         }
-        code.rule {
-            display:block;
-            background: #0F1C10;
-            color: #EAF4EA;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(0,0,0,0.15);
-            white-space: pre-wrap;
-            font-size: 12px;
-            line-height: 1.45;
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -137,7 +126,7 @@ def card_button(label: str, key: str, on_click_page: str, color_class="card-1", 
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================
-# Bottom notes: preprocessing mappings
+# Bottom notes: preprocessing mappings (NO CODE RULE)
 # =========================
 def show_preprocessing_notes():
     ageclass_desc = {
@@ -149,7 +138,6 @@ def show_preprocessing_notes():
         6: "61 – 70 tahun"
     }
 
-    # Price class ranges (based on your map_price_class rule)
     price_class_desc = {
         0: "price ≤ 20",
         1: "20 < price ≤ 50",
@@ -164,11 +152,10 @@ def show_preprocessing_notes():
     st.subheader("Keterangan Kolom Hasil Preprocessing")
     st.caption("Tabel di bawah hanya sebagai dokumentasi mapping fitur buatan (age_class & price_class).")
 
-    # ===== Age class table =====
+    # Age class table
     age_rows = "".join(
         [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in ageclass_desc.items()]
     )
-
     age_table_html = f"""
     <div class="note-wrap">
       <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Age Class (age_class)</h4>
@@ -185,14 +172,12 @@ def show_preprocessing_notes():
       </table>
     </div>
     """
-
     st.markdown(age_table_html, unsafe_allow_html=True)
 
-    # ===== Price class table =====
+    # Price class table (NO rule code)
     price_rows = "".join(
         [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()]
     )
-
     price_table_html = f"""
     <div class="note-wrap" style="margin-top:14px;">
       <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Price Class (price_class)</h4>
@@ -200,33 +185,18 @@ def show_preprocessing_notes():
         <thead>
           <tr>
             <th style="width:160px;">price_class</th>
-            <th>Aturan rentang price</th>
+            <th>Rentang harga (price)</th>
           </tr>
         </thead>
         <tbody>
           {price_rows}
         </tbody>
       </table>
-
-      <div style="margin: 6px 0 10px 0; color:#1F3020; font-weight:700;">Kode pengelompokan (rule)</div>
-      <code class="rule">def map_price_class(p):
-    if p &lt;= 20:
-        return 0
-    elif p &lt;= 50:
-        return 1
-    elif p &lt;= 100:
-        return 2
-    elif p &lt;= 500:
-        return 3
-    elif p &lt;= 1000:
-        return 4
-    elif p &lt;= 2000:
-        return 5
-    else:
-        return 6</code>
+      <div style="font-size:12px; color:#4B6650; margin-top:6px;">
+        Catatan: <i>price_class dibuat untuk mengelompokkan harga ke dalam level rendah–tinggi agar analisis lebih ringkas.</i>
+      </div>
     </div>
     """
-
     st.markdown(price_table_html, unsafe_allow_html=True)
 
 # =========================
@@ -285,10 +255,8 @@ elif st.session_state.insight_subpage == "view_dataset":
     with c1:
         default_idx = sort_cols.index("age") if "age" in sort_cols else 0
         sort_by = st.selectbox("Sort by column", options=sort_cols, index=default_idx)
-
     with c2:
         ascending = st.radio("Order", ["Ascending", "Descending"], horizontal=True)
-
     with c3:
         n_rows = st.slider("Jumlah baris ditampilkan", 10, 500, 100)
 
