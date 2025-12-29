@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 st.set_page_config(page_title="Insight", layout="wide")
 
@@ -137,7 +138,7 @@ def card_button(label: str, key: str, on_click_page: str, color_class="card-1", 
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================
-# Bottom notes: preprocessing mappings (NO CODE RULE)
+# Bottom notes: preprocessing mappings
 # =========================
 def show_preprocessing_notes():
     ageclass_desc = {
@@ -161,9 +162,8 @@ def show_preprocessing_notes():
 
     st.markdown("---")
     st.subheader("Keterangan Kolom Hasil Preprocessing")
-    st.caption("Tabel di bawah hanya sebagai dokumentasi mapping fitur buatan (age_class & price_class).")
+    st.caption("Dokumentasi mapping fitur buatan (age_class & price_class).")
 
-    # Age class table
     age_rows = "".join(
         [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in ageclass_desc.items()]
     )
@@ -185,7 +185,6 @@ def show_preprocessing_notes():
     """
     st.markdown(age_table_html, unsafe_allow_html=True)
 
-    # Price class table
     price_rows = "".join(
         [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()]
     )
@@ -204,7 +203,7 @@ def show_preprocessing_notes():
         </tbody>
       </table>
       <div style="font-size:12px; color:#4B6650; margin-top:6px;">
-        Catatan: <i>price_class dibuat untuk mengelompokkan harga ke dalam level rendah–tinggi agar analisis lebih ringkas.</i>
+        Catatan: <i>price_class dibuat untuk mengelompokkan harga agar analisis lebih ringkas.</i>
       </div>
     </div>
     """
@@ -246,9 +245,20 @@ def insight_by(df_in: pd.DataFrame, group_col: str):
             total_spend_avg=("total_spend", "mean"),
         )
         .reset_index()
-        .sort_values("total_spend_sum", ascending=False)
     )
     return out
+
+def smart_xtick_rotation(values) -> int:
+    """Auto rotate if labels are long or too many."""
+    try:
+        vals = [str(v) for v in values]
+        maxlen = max(len(v) for v in vals) if vals else 0
+        n = len(vals)
+        if maxlen >= 12 or n >= 8:
+            return 45
+        return 0
+    except Exception:
+        return 0
 
 # =========================
 # HOME
@@ -284,7 +294,6 @@ if st.session_state.insight_subpage == "home":
     st.markdown("---")
     st.caption("Preview data:")
     st.dataframe(df.head(5), use_container_width=True)
-
     show_preprocessing_notes()
 
 # =========================
@@ -316,11 +325,10 @@ elif st.session_state.insight_subpage == "view_dataset":
     st.markdown("---")
     st.caption("Hasil data setelah sorting:")
     st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=520)
-
     show_preprocessing_notes()
 
 # =========================
-# SUBPAGE: INSIGHT PARAMETER (NEW)
+# SUBPAGE: INSIGHT PARAMETER (BAR + PIE + CONTROLS)
 # =========================
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
@@ -329,20 +337,16 @@ elif st.session_state.insight_subpage == "insight_param":
             go("home")
     with topbar[1]:
         st.subheader("Insight by Parameter")
-        st.caption("Ringkasan total_spend & jumlah transaksi, dengan kontrol filter parameter (tanpa age & tanggal).")
+        st.caption("Chart interaktif (hover detail). Ada sorting, Top N vs All, & pie metric.")
 
-    # ----------- Columns check -----------
-    required_cols = ["total_spend"]
-    missing = [c for c in required_cols if c not in df.columns]
-    if missing:
-        st.error(f"Kolom wajib tidak ditemukan: {missing}. Pastikan dataset punya kolom `total_spend`.")
+    if "total_spend" not in df.columns:
+        st.error("Kolom `total_spend` tidak ditemukan. Pastikan dataset final punya kolom total_spend.")
         st.stop()
 
-    # ----------- Filter Controls (RIGHT) -----------
-    # Excluded from controls:
+    # Excluded from controls
     excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
 
-    # Allowed controls (only if exist in df)
+    # Allowed controls (only if exist)
     controls = [
         "gender",
         "category",
@@ -359,19 +363,16 @@ elif st.session_state.insight_subpage == "insight_param":
 
     with right:
         st.markdown("### Filter Parameter")
-        st.caption("Pilih nilai untuk memfilter data. Kosongkan untuk semua.")
+        st.caption("Kosongkan (default semua) untuk melihat keseluruhan.")
 
-        # Build filters (multiselect for categoricals, slider for numeric)
         filter_state = {}
-
         for col in controls:
             if pd.api.types.is_numeric_dtype(df[col]):
-                # Numeric filter: min-max slider
                 col_min = float(pd.to_numeric(df[col], errors="coerce").min())
                 col_max = float(pd.to_numeric(df[col], errors="coerce").max())
                 if col_min == col_max:
-                    st.caption(f"{col}: hanya 1 nilai ({col_min})")
                     filter_state[col] = (col_min, col_max)
+                    st.caption(f"{col}: hanya 1 nilai ({col_min})")
                 else:
                     filter_state[col] = st.slider(
                         f"{col} (range)",
@@ -380,28 +381,41 @@ elif st.session_state.insight_subpage == "insight_param":
                         value=(col_min, col_max),
                     )
             else:
-                # Categorical filter: multiselect
                 opts = sorted(df[col].dropna().astype(str).unique().tolist())
                 chosen = st.multiselect(col, options=opts, default=opts)
                 filter_state[col] = chosen
 
         st.markdown("---")
-        group_by = st.selectbox(
-            "Group by (untuk tabel insight)",
-            options=[c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns],
-            index=0
+        group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
+        group_by = st.selectbox("Group by", options=group_by_options, index=0)
+
+        sort_metric = st.radio(
+            "Sort by",
+            options=["Total Spend", "Jumlah Transaksi"],
+            horizontal=True
         )
-        top_n = st.slider("Top N", 5, 30, 10)
 
-    # ----------- Apply filters -----------
+        top_mode = st.radio(
+            "Tampilkan",
+            options=["Top N", "All"],
+            horizontal=True
+        )
+
+        top_n = st.slider("Top N", 5, 30, 10, disabled=(top_mode == "All"))
+
+        pie_metric = st.radio(
+            "Pie berdasarkan",
+            options=["Total Spend", "Jumlah Transaksi"],
+            horizontal=True
+        )
+
+    # Apply filters
     df_f = df.copy()
-
     for col, sel in filter_state.items():
         if pd.api.types.is_numeric_dtype(df_f[col]):
             lo, hi = sel
             df_f = df_f[pd.to_numeric(df_f[col], errors="coerce").between(lo, hi)]
         else:
-            # sel is list of strings
             if sel:
                 df_f = df_f[df_f[col].astype(str).isin(sel)]
 
@@ -421,18 +435,69 @@ elif st.session_state.insight_subpage == "insight_param":
             render_kpi("Rata-rata Spend", fmt_money(avg_spend), "mean(total_spend)")
 
         st.markdown("---")
-        st.caption("Tabel insight berdasarkan pilihan Group by (diurutkan dari total_spend terbesar).")
 
         if total_trx == 0:
             st.warning("Data kosong setelah filter. Coba longgarkan filter.")
         else:
-            insight = insight_by(df_f, group_by).head(top_n)
-            # rapihin format
+            insight = insight_by(df_f, group_by)
+
+            # sort
+            if sort_metric == "Jumlah Transaksi":
+                insight = insight.sort_values("transaksi_count", ascending=False)
+            else:
+                insight = insight.sort_values("total_spend_sum", ascending=False)
+
+            # Top N vs All
+            if top_mode == "Top N":
+                insight = insight.head(top_n)
+
+            # Auto rotate x labels
+            rot = smart_xtick_rotation(insight[group_by].tolist())
+
+            # BAR: Total Spend
+            st.markdown("#### Bar Chart — Total Spend")
+            fig1 = px.bar(
+                insight,
+                x=group_by,
+                y="total_spend_sum",
+                hover_data=["transaksi_count", "total_spend_avg"],
+                title=f"Total Spend by {group_by} ({top_mode})",
+            )
+            fig1.update_layout(xaxis_title=group_by, yaxis_title="Total Spend")
+            fig1.update_xaxes(tickangle=rot)
+            st.plotly_chart(fig1, use_container_width=True)
+
+            # BAR: Jumlah Transaksi
+            st.markdown("#### Bar Chart — Jumlah Transaksi")
+            fig2 = px.bar(
+                insight,
+                x=group_by,
+                y="transaksi_count",
+                hover_data=["total_spend_sum", "total_spend_avg"],
+                title=f"Jumlah Transaksi by {group_by} ({top_mode})",
+            )
+            fig2.update_layout(xaxis_title=group_by, yaxis_title="Jumlah Transaksi")
+            fig2.update_xaxes(tickangle=rot)
+            st.plotly_chart(fig2, use_container_width=True)
+
+            # PIE: Total Spend / Transaksi
+            st.markdown("#### Pie Chart — Proporsi")
+            pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
+            fig3 = px.pie(
+                insight,
+                names=group_by,
+                values=pie_value_col,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=f"Share {pie_metric} by {group_by} ({top_mode})",
+            )
+            st.plotly_chart(fig3, use_container_width=True)
+
+            # Insight Table
+            st.markdown("#### Tabel Insight")
             insight_disp = insight.copy()
-            for c in ["total_spend_sum", "total_spend_avg"]:
-                if c in insight_disp.columns:
-                    insight_disp[c] = insight_disp[c].astype(float).round(2)
-            st.dataframe(insight_disp, use_container_width=True, height=420)
+            insight_disp["total_spend_sum"] = insight_disp["total_spend_sum"].astype(float).round(2)
+            insight_disp["total_spend_avg"] = insight_disp["total_spend_avg"].astype(float).round(2)
+            st.dataframe(insight_disp, use_container_width=True, height=360)
 
     show_preprocessing_notes()
 
