@@ -1,9 +1,13 @@
-/* ===== Base ===== */
+/* =========================================================
+   BASE
+========================================================= */
 .stApp { background-color: #ffffff; }
 h1, h2, h3 { color: #1F3020; }
 .stCaption { color: rgba(31,48,32,0.75); }
 
-/* ===== Dataframe ===== */
+/* =========================================================
+   DATAFRAME
+========================================================= */
 div[data-testid="stDataFrame"] {
   border-radius: 12px;
   border: 1px solid #E5E7EB;
@@ -11,7 +15,9 @@ div[data-testid="stDataFrame"] {
   background-color: #FAFAFA;
 }
 
-/* ===== Menu Cards ===== */
+/* =========================================================
+   MENU CARDS
+========================================================= */
 .card button {
   width: 100% !important;
   height: 92px !important;
@@ -38,18 +44,36 @@ div[data-testid="stDataFrame"] {
 .card-4 button { background: linear-gradient(135deg, #1F3020, #0F1C10) !important; }
 .card-5 button { background: linear-gradient(135deg, #0F1C10, #3A4A3B) !important; }
 
-/* ===== KPI ===== */
+/* =========================================================
+   KPI
+========================================================= */
 .kpi-wrap {
   background: #F6FAF6;
   border: 1px solid #E3EEE4;
   border-radius: 14px;
   padding: 12px 14px;
 }
-.kpi-title { color:#1F3020; font-weight:800; font-size:12px; opacity:0.9; }
-.kpi-value { color:#0F1C10; font-weight:900; font-size:8px; margin-top:2px; }
-.kpi-sub { color:#4B6650; font-size:12px; margin-top:2px; }
+.kpi-title {
+  color:#1F3020;
+  font-weight:800;
+  font-size:12px;
+  opacity:0.9;
+}
+.kpi-value {
+  color:#0F1C10;
+  font-weight:900;
+  font-size:18px;
+  margin-top:2px;
+}
+.kpi-sub {
+  color:#4B6650;
+  font-size:12px;
+  margin-top:2px;
+}
 
-/* ===== Year Panels ===== */
+/* =========================================================
+   YEAR PANELS (MENU 3)
+========================================================= */
 .year-panel {
   border-radius: 16px;
   padding: 12px 12px 6px 12px;
@@ -63,7 +87,9 @@ div[data-testid="stDataFrame"] {
   margin-bottom: 6px;
 }
 
-/* ===== Monthly Trend (Menu 4) tweaks ===== */
+/* =========================================================
+   MONTHLY TREND (MENU 4)
+========================================================= */
 .month-title {
   font-weight: 900;
   font-size: 15px;
@@ -77,5 +103,25 @@ div[data-testid="stDataFrame"] {
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: 0 8px 18px rgba(0,0,0,0.06);
   margin-bottom: 12px;
-  background: linear-gradient(135deg, rgba(105,138,107,0.10), rgba(169,194,170,0.10));
+  background: linear-gradient(
+    135deg,
+    rgba(105,138,107,0.10),
+    rgba(169,194,170,0.10)
+  );
+}
+
+/* =========================================================
+   LANDING PAGE (APP.PY ONLY)
+   Aman — tidak mengganggu Insight
+========================================================= */
+.landing-box {
+  margin-top: 40px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(105,138,107,0.15),
+    rgba(169,194,170,0.20)
+  );
+  border: 1px solid rgba(0,0,0,0.06);
 }
