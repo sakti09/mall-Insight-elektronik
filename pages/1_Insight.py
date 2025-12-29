@@ -258,7 +258,7 @@ elif st.session_state.insight_subpage == "view_dataset":
     with c2:
         ascending = st.radio("Order", ["Ascending", "Descending"], horizontal=True)
     with c3:
-        n_rows = st.slider("Jumlah baris ditampilkan", 10, 500, 100)
+        n_rows = st.slider("Jumlah baris ditampilkan", 10, 5000, 100)
 
     df_sorted = df.sort_values(by=sort_by, ascending=(ascending == "Ascending"))
 
