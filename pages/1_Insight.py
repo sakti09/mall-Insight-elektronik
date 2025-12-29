@@ -139,7 +139,7 @@ if st.session_state.insight_subpage == "home":
     st.dataframe(df.head(5), use_container_width=True)
 
 # =========================
-# SUBPAGE: VIEW DATASET
+# SUBPAGE: VIEW DATASET (MENU 1)
 # =========================
 elif st.session_state.insight_subpage == "view_dataset":
     topbar = st.columns([1, 6])
@@ -167,7 +167,7 @@ elif st.session_state.insight_subpage == "view_dataset":
     st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=560)
 
 # =========================
-# SUBPAGE: INSIGHT PARAM
+# SUBPAGE: INSIGHT PARAM (MENU 2)
 # =========================
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
@@ -251,11 +251,124 @@ elif st.session_state.insight_subpage == "insight_param":
             st.plotly_chart(fig3, use_container_width=True)
 
 # =========================
-# SUBPAGE: TREND YEARLY (MENU 3)
+# SUBPAGE: TREND YEARLY (MENU 3) ✅ FIXED
 # =========================
 elif st.session_state.insight_subpage == "trend_yearly":
-    # (menu 3 kamu sudah fix — biarkan sesuai versi yang terakhir kamu pakai)
-    st.info("Menu 3 sudah kamu fix. Paste versi menu 3 yang terakhir (yang bar bisa berubah).")
+    topbar = st.columns([1, 6])
+    with topbar[0]:
+        if st.button("⬅️ Back", use_container_width=True):
+            go("home")
+    with topbar[1]:
+        st.subheader("Tren Tahunan (2021 | 2022 | 2023)")
+        st.caption("3 kolom: KPI → Bar → Pie. Bar bisa dipilih Spend / Transaksi.")
+
+    if "invoice_date_year" not in df.columns:
+        st.error("Kolom `invoice_date_year` tidak ditemukan.")
+        st.stop()
+    if "total_spend" not in df.columns:
+        st.error("Kolom `total_spend` tidak ditemukan.")
+        st.stop()
+
+    excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
+    controls = ["gender", "category", "quantity", "payment_method", "shopping_mall", "age_class", "price_class", "price"]
+    controls = [c for c in controls if c in df.columns and c not in excluded_controls]
+
+    main_left, main_right = st.columns([3, 1])
+
+    with main_right:
+        st.markdown("### Kontrol (Global)")
+        filter_state = {}
+        for col in controls:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                col_min = float(pd.to_numeric(df[col], errors="coerce").min())
+                col_max = float(pd.to_numeric(df[col], errors="coerce").max())
+                filter_state[col] = st.slider(col, col_min, col_max, (col_min, col_max), key=f"y_{col}")
+            else:
+                opts = sorted(df[col].dropna().astype(str).unique().tolist())
+                filter_state[col] = st.multiselect(col, options=opts, default=opts, key=f"y_{col}")
+
+        st.markdown("---")
+        group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
+        group_by = st.selectbox("Group by", options=group_by_options, index=0, key="y_group")
+
+        sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_sort_metric")
+        bar_metric = st.radio("Bar berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_bar_metric")
+
+        top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True, key="y_top_mode")
+        top_n = st.slider("Top N", 5, 25, 10, disabled=(top_mode == "All"), key="y_top_n")
+
+        pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_pie_metric")
+
+    df_global = apply_filters(df, filter_state)
+
+    def panel_year(container, year: int):
+        df_y = df_global[df_global["invoice_date_year"] == year].copy()
+        panel_bg, bar_colors, pie_colors = year_theme(year)
+
+        with container:
+            st.markdown(f'<div class="year-panel" style="{panel_bg}">', unsafe_allow_html=True)
+            st.markdown(f'<div class="year-title">Tahun {year}</div>', unsafe_allow_html=True)
+
+            total_trx = len(df_y)
+            total_spend = float(pd.to_numeric(df_y["total_spend"], errors="coerce").sum())
+            avg_spend = float(pd.to_numeric(df_y["total_spend"], errors="coerce").mean()) if total_trx > 0 else 0.0
+
+            k1, k2, k3 = st.columns(3)
+            with k1:
+                render_kpi("Transaksi", fmt_int(total_trx))
+            with k2:
+                render_kpi("Total Spend", fmt_money(total_spend))
+            with k3:
+                render_kpi("Avg Spend", fmt_money(avg_spend))
+
+            if total_trx == 0:
+                st.caption("Data kosong.")
+                st.markdown("</div>", unsafe_allow_html=True)
+                return
+
+            insight = insight_by(df_y, group_by)
+            sort_col = "total_spend_sum" if sort_metric == "Total Spend" else "transaksi_count"
+            insight = insight.sort_values(sort_col, ascending=False)
+
+            if top_mode == "Top N":
+                insight = insight.head(top_n)
+
+            rot = smart_xtick_rotation(insight[group_by].tolist())
+
+            y_col = "total_spend_sum" if bar_metric == "Total Spend" else "transaksi_count"
+            bar_title = "Total Spend" if bar_metric == "Total Spend" else "Jumlah Transaksi"
+
+            fig_bar = px.bar(
+                insight,
+                x=group_by,
+                y=y_col,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=bar_title,
+                color_discrete_sequence=bar_colors
+            )
+            fig_bar.update_xaxes(tickangle=rot)
+            fig_bar.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+            pie_val = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
+            fig_pie = px.pie(
+                insight,
+                names=group_by,
+                values=pie_val,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=f"Share {pie_metric}",
+                color_discrete_sequence=pie_colors
+            )
+            fig_pie.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    with main_left:
+        c2021, c2022, c2023 = st.columns(3, gap="medium")
+        panel_year(c2021, 2021)
+        panel_year(c2022, 2022)
+        panel_year(c2023, 2023)
 
 # =========================
 # SUBPAGE: TREND MONTHLY (MENU 4)
@@ -287,7 +400,6 @@ elif st.session_state.insight_subpage == "trend_monthly":
 
     with main_right:
         st.markdown("### Kontrol (Global)")
-
         year_pick = st.selectbox("Filter Tahun", ["All", "2021", "2022", "2023"], index=0, key="m_year_pick")
 
         filter_state = {}
@@ -315,9 +427,9 @@ elif st.session_state.insight_subpage == "trend_monthly":
         df_global = df_global[df_global["invoice_date_year"] == int(year_pick)]
 
     month_names = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
-    colA = [1,4,7,10]
-    colB = [2,5,8,11]
-    colC = [3,6,9,12]
+    colA = [1, 4, 7, 10]
+    colB = [2, 5, 8, 11]
+    colC = [3, 6, 9, 12]
 
     def month_panel(container, m: int, show_pie: bool):
         df_m = df_global[df_global["invoice_date_month"] == m].copy()
@@ -333,6 +445,7 @@ elif st.session_state.insight_subpage == "trend_monthly":
             insight = insight_by(df_m, group_by)
             sort_col = "total_spend_sum" if sort_metric == "Total Spend" else "transaksi_count"
             insight = insight.sort_values(sort_col, ascending=False)
+
             if top_mode == "Top N":
                 insight = insight.head(top_n)
 
@@ -341,36 +454,46 @@ elif st.session_state.insight_subpage == "trend_monthly":
             y_col = "total_spend_sum" if bar_metric == "Total Spend" else "transaksi_count"
             title_bar = "Total Spend" if bar_metric == "Total Spend" else "Jumlah Transaksi"
 
-            fig_bar = px.bar(insight, x=group_by, y=y_col,
-                             hover_data=["total_spend_sum","transaksi_count","total_spend_avg"],
-                             title=title_bar)
+            fig_bar = px.bar(
+                insight, x=group_by, y=y_col,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=title_bar
+            )
             fig_bar.update_xaxes(tickangle=rot)
-            fig_bar.update_layout(height=260, margin=dict(l=10,r=10,t=40,b=10))
+            fig_bar.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
             st.plotly_chart(fig_bar, use_container_width=True)
 
             if show_pie:
                 pie_value = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
-                fig_pie = px.pie(insight, names=group_by, values=pie_value,
-                                 hover_data=["total_spend_sum","transaksi_count","total_spend_avg"],
-                                 title=f"Share {pie_metric}")
-                fig_pie.update_layout(height=260, margin=dict(l=10,r=10,t=40,b=10))
+                fig_pie = px.pie(
+                    insight, names=group_by, values=pie_value,
+                    hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                    title=f"Share {pie_metric}"
+                )
+                fig_pie.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_pie, use_container_width=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
     with main_left:
         st.markdown("### Mini Bar Chart per Bulan (tanpa scroll)")
-        a,b,c = st.columns(3, gap="medium")
-        for m in colA: month_panel(a, m, show_pie=False)
-        for m in colB: month_panel(b, m, show_pie=False)
-        for m in colC: month_panel(c, m, show_pie=False)
+        a, b, c = st.columns(3, gap="medium")
+        for m in colA:
+            month_panel(a, m, show_pie=False)
+        for m in colB:
+            month_panel(b, m, show_pie=False)
+        for m in colC:
+            month_panel(c, m, show_pie=False)
 
         st.markdown("---")
         st.markdown("### Pie Chart per Bulan (scroll)")
-        a2,b2,c2 = st.columns(3, gap="medium")
-        for m in colA: month_panel(a2, m, show_pie=True)
-        for m in colB: month_panel(b2, m, show_pie=True)
-        for m in colC: month_panel(c2, m, show_pie=True)
+        a2, b2, c2 = st.columns(3, gap="medium")
+        for m in colA:
+            month_panel(a2, m, show_pie=True)
+        for m in colB:
+            month_panel(b2, m, show_pie=True)
+        for m in colC:
+            month_panel(c2, m, show_pie=True)
 
 else:
     go("home")
