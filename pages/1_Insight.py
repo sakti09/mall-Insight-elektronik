@@ -90,7 +90,9 @@ if st.session_state.insight_subpage == "home":
     st.write("Preview cepat dataset (top 5):")
     st.dataframe(df.head(5), use_container_width=True)
 
+# =========================
 # SUBPAGE: VIEW DATASET
+# =========================
 elif st.session_state.insight_subpage == "view_dataset":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -99,36 +101,51 @@ elif st.session_state.insight_subpage == "view_dataset":
     with topbar[1]:
         st.subheader("View Dataset")
 
-    st.caption("Bagian 1: tampilkan 10 baris pertama (scrollable).")
-    st.dataframe(df.head(10), use_container_width=True, height=260)
+    st.caption("Tabel data lengkap yang dapat diurutkan (sorting).")
 
-    st.markdown("---")
-
-    st.caption("Bagian 2: tabel yang bisa kamu urutkan (sorting).")
-    st.write("Cara 1: klik header kolom di tabel (biasanya bisa sort naik/turun).")
-    st.dataframe(df, use_container_width=True, height=360)
-
-    st.markdown("**Cara 2 (kontrol sorting):** pilih kolom & urutan, lalu tampilkan hasil sort.")
+    # ===== Sorting Controls =====
     sort_cols = df.columns.tolist()
     c1, c2, c3 = st.columns([2, 1, 2])
 
     with c1:
         default_idx = sort_cols.index("age") if "age" in sort_cols else 0
         sort_by = st.selectbox("Sort by column", options=sort_cols, index=default_idx)
-    with c2:
-        ascending = st.radio("Order", options=["Ascending", "Descending"], horizontal=True)
-    with c3:
-        n_rows = st.slider("Tampilkan berapa baris hasil sort?", 10, 200, 50)
 
-    df_sorted = df.sort_values(by=sort_by, ascending=(ascending == "Ascending"))
-    st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=360)
+    with c2:
+        ascending = st.radio(
+            "Order",
+            options=["Ascending", "Descending"],
+            horizontal=True
+        )
+
+    with c3:
+        n_rows = st.slider(
+            "Jumlah baris ditampilkan",
+            min_value=10,
+            max_value=500,
+            value=100
+        )
+
+    # ===== Apply sorting =====
+    df_sorted = df.sort_values(
+        by=sort_by,
+        ascending=(ascending == "Ascending")
+    )
+
+    st.markdown("---")
+    st.caption("Hasil data setelah sorting:")
+    st.dataframe(
+        df_sorted.head(n_rows),
+        use_container_width=True,
+        height=520
+    )
 
 
 # SUBPAGE: INSIGHT PARAM 
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
     with topbar[0]:
-        if st.button("⬅️ Back", use_container_width=True):
+        if st.button("Back", use_container_width=True):
             go("home")
     with topbar[1]:
         st.subheader("Insight by Parameter (Coming soon)")
