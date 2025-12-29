@@ -164,53 +164,39 @@ def show_preprocessing_notes():
     st.subheader("Keterangan Kolom Hasil Preprocessing")
     st.caption("Dokumentasi mapping fitur buatan (age_class & price_class).")
 
-    age_rows = "".join(
-        [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in ageclass_desc.items()]
+    age_rows = "".join([f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in ageclass_desc.items()])
+    st.markdown(
+        f"""
+        <div class="note-wrap">
+          <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Age Class (age_class)</h4>
+          <table class="pretty">
+            <thead><tr><th style="width:160px;">age_class</th><th>Rentang usia</th></tr></thead>
+            <tbody>{age_rows}</tbody>
+          </table>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    age_table_html = f"""
-    <div class="note-wrap">
-      <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Age Class (age_class)</h4>
-      <table class="pretty">
-        <thead>
-          <tr>
-            <th style="width:160px;">age_class</th>
-            <th>Rentang usia</th>
-          </tr>
-        </thead>
-        <tbody>
-          {age_rows}
-        </tbody>
-      </table>
-    </div>
-    """
-    st.markdown(age_table_html, unsafe_allow_html=True)
 
-    price_rows = "".join(
-        [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()]
+    price_rows = "".join([f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()])
+    st.markdown(
+        f"""
+        <div class="note-wrap" style="margin-top:14px;">
+          <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Price Class (price_class)</h4>
+          <table class="pretty">
+            <thead><tr><th style="width:160px;">price_class</th><th>Rentang harga (price)</th></tr></thead>
+            <tbody>{price_rows}</tbody>
+          </table>
+          <div style="font-size:12px; color:#4B6650; margin-top:6px;">
+            Catatan: <i>price_class dibuat untuk mengelompokkan harga agar analisis lebih ringkas.</i>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    price_table_html = f"""
-    <div class="note-wrap" style="margin-top:14px;">
-      <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Price Class (price_class)</h4>
-      <table class="pretty">
-        <thead>
-          <tr>
-            <th style="width:160px;">price_class</th>
-            <th>Rentang harga (price)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {price_rows}
-        </tbody>
-      </table>
-      <div style="font-size:12px; color:#4B6650; margin-top:6px;">
-        Catatan: <i>price_class dibuat untuk mengelompokkan harga agar analisis lebih ringkas.</i>
-      </div>
-    </div>
-    """
-    st.markdown(price_table_html, unsafe_allow_html=True)
 
 # =========================
-# Helpers: KPI & Insight table
+# Helpers
 # =========================
 def fmt_int(x):
     try:
@@ -237,7 +223,7 @@ def render_kpi(title: str, value: str, subtitle: str = ""):
     )
 
 def insight_by(df_in: pd.DataFrame, group_col: str):
-    out = (
+    return (
         df_in.groupby(group_col, dropna=False)
         .agg(
             transaksi_count=("total_spend", "size"),
@@ -246,10 +232,8 @@ def insight_by(df_in: pd.DataFrame, group_col: str):
         )
         .reset_index()
     )
-    return out
 
 def smart_xtick_rotation(values) -> int:
-    """Auto rotate if labels are long or too many."""
     try:
         vals = [str(v) for v in values]
         maxlen = max(len(v) for v in vals) if vals else 0
@@ -259,6 +243,17 @@ def smart_xtick_rotation(values) -> int:
         return 0
     except Exception:
         return 0
+
+def apply_filters(df_in: pd.DataFrame, filter_state: dict) -> pd.DataFrame:
+    df_f = df_in.copy()
+    for col, sel in filter_state.items():
+        if pd.api.types.is_numeric_dtype(df_f[col]):
+            lo, hi = sel
+            df_f = df_f[pd.to_numeric(df_f[col], errors="coerce").between(lo, hi)]
+        else:
+            if sel:
+                df_f = df_f[df_f[col].astype(str).isin(sel)]
+    return df_f
 
 # =========================
 # HOME
@@ -273,7 +268,7 @@ if st.session_state.insight_subpage == "home":
     with cols[1]:
         card_button("2) Insight by Parameter", "card_2", "insight_param", color_class="card-2")
     with cols[2]:
-        card_button("3) Placeholder", "card_3", "todo_3", color_class="card-3", disabled=True)
+        card_button("3) Tren Tahunan", "card_3", "trend_yearly", color_class="card-3")
     with cols[3]:
         card_button("4) Placeholder", "card_4", "todo_4", color_class="card-4", disabled=True)
     with cols[4]:
@@ -328,7 +323,7 @@ elif st.session_state.insight_subpage == "view_dataset":
     show_preprocessing_notes()
 
 # =========================
-# SUBPAGE: INSIGHT PARAMETER (BAR + PIE + CONTROLS)
+# SUBPAGE: INSIGHT PARAMETER (existing)
 # =========================
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
@@ -343,85 +338,38 @@ elif st.session_state.insight_subpage == "insight_param":
         st.error("Kolom `total_spend` tidak ditemukan. Pastikan dataset final punya kolom total_spend.")
         st.stop()
 
-    # Excluded from controls
     excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
 
-    # Allowed controls (only if exist)
-    controls = [
-        "gender",
-        "category",
-        "quantity",
-        "payment_method",
-        "shopping_mall",
-        "age_class",
-        "price_class",
-        "price",
-    ]
+    controls = ["gender", "category", "quantity", "payment_method", "shopping_mall", "age_class", "price_class", "price"]
     controls = [c for c in controls if c in df.columns and c not in excluded_controls]
 
     left, right = st.columns([3, 1])
 
     with right:
         st.markdown("### Filter Parameter")
-        st.caption("Kosongkan (default semua) untuk melihat keseluruhan.")
-
         filter_state = {}
+
         for col in controls:
             if pd.api.types.is_numeric_dtype(df[col]):
                 col_min = float(pd.to_numeric(df[col], errors="coerce").min())
                 col_max = float(pd.to_numeric(df[col], errors="coerce").max())
-                if col_min == col_max:
-                    filter_state[col] = (col_min, col_max)
-                    st.caption(f"{col}: hanya 1 nilai ({col_min})")
-                else:
-                    filter_state[col] = st.slider(
-                        f"{col} (range)",
-                        min_value=col_min,
-                        max_value=col_max,
-                        value=(col_min, col_max),
-                    )
+                filter_state[col] = st.slider(col, col_min, col_max, (col_min, col_max))
             else:
                 opts = sorted(df[col].dropna().astype(str).unique().tolist())
-                chosen = st.multiselect(col, options=opts, default=opts)
-                filter_state[col] = chosen
+                filter_state[col] = st.multiselect(col, options=opts, default=opts)
 
         st.markdown("---")
         group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
         group_by = st.selectbox("Group by", options=group_by_options, index=0)
 
-        sort_metric = st.radio(
-            "Sort by",
-            options=["Total Spend", "Jumlah Transaksi"],
-            horizontal=True
-        )
-
-        top_mode = st.radio(
-            "Tampilkan",
-            options=["Top N", "All"],
-            horizontal=True
-        )
-
+        sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True)
+        top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True)
         top_n = st.slider("Top N", 5, 30, 10, disabled=(top_mode == "All"))
+        pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True)
 
-        pie_metric = st.radio(
-            "Pie berdasarkan",
-            options=["Total Spend", "Jumlah Transaksi"],
-            horizontal=True
-        )
-
-    # Apply filters
-    df_f = df.copy()
-    for col, sel in filter_state.items():
-        if pd.api.types.is_numeric_dtype(df_f[col]):
-            lo, hi = sel
-            df_f = df_f[pd.to_numeric(df_f[col], errors="coerce").between(lo, hi)]
-        else:
-            if sel:
-                df_f = df_f[df_f[col].astype(str).isin(sel)]
+    df_f = apply_filters(df, filter_state)
 
     with left:
-        st.markdown("### Ringkasan (hasil filter)")
-
         total_trx = len(df_f)
         total_spend = float(pd.to_numeric(df_f["total_spend"], errors="coerce").sum())
         avg_spend = float(pd.to_numeric(df_f["total_spend"], errors="coerce").mean()) if total_trx > 0 else 0.0
@@ -440,64 +388,141 @@ elif st.session_state.insight_subpage == "insight_param":
             st.warning("Data kosong setelah filter. Coba longgarkan filter.")
         else:
             insight = insight_by(df_f, group_by)
-
-            # sort
-            if sort_metric == "Jumlah Transaksi":
-                insight = insight.sort_values("transaksi_count", ascending=False)
-            else:
-                insight = insight.sort_values("total_spend_sum", ascending=False)
-
-            # Top N vs All
+            insight = insight.sort_values("transaksi_count" if sort_metric == "Jumlah Transaksi" else "total_spend_sum", ascending=False)
             if top_mode == "Top N":
                 insight = insight.head(top_n)
 
-            # Auto rotate x labels
             rot = smart_xtick_rotation(insight[group_by].tolist())
 
-            # BAR: Total Spend
-            st.markdown("#### Bar Chart — Total Spend")
-            fig1 = px.bar(
-                insight,
-                x=group_by,
-                y="total_spend_sum",
-                hover_data=["transaksi_count", "total_spend_avg"],
-                title=f"Total Spend by {group_by} ({top_mode})",
-            )
-            fig1.update_layout(xaxis_title=group_by, yaxis_title="Total Spend")
+            fig1 = px.bar(insight, x=group_by, y="total_spend_sum",
+                          hover_data=["transaksi_count", "total_spend_avg"],
+                          title=f"Total Spend by {group_by} ({top_mode})")
             fig1.update_xaxes(tickangle=rot)
             st.plotly_chart(fig1, use_container_width=True)
 
-            # BAR: Jumlah Transaksi
-            st.markdown("#### Bar Chart — Jumlah Transaksi")
-            fig2 = px.bar(
-                insight,
-                x=group_by,
-                y="transaksi_count",
-                hover_data=["total_spend_sum", "total_spend_avg"],
-                title=f"Jumlah Transaksi by {group_by} ({top_mode})",
-            )
-            fig2.update_layout(xaxis_title=group_by, yaxis_title="Jumlah Transaksi")
+            fig2 = px.bar(insight, x=group_by, y="transaksi_count",
+                          hover_data=["total_spend_sum", "total_spend_avg"],
+                          title=f"Jumlah Transaksi by {group_by} ({top_mode})")
             fig2.update_xaxes(tickangle=rot)
             st.plotly_chart(fig2, use_container_width=True)
 
-            # PIE: Total Spend / Transaksi
-            st.markdown("#### Pie Chart — Proporsi")
             pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
-            fig3 = px.pie(
-                insight,
-                names=group_by,
-                values=pie_value_col,
-                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
-                title=f"Share {pie_metric} by {group_by} ({top_mode})",
-            )
+            fig3 = px.pie(insight, names=group_by, values=pie_value_col,
+                          hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                          title=f"Share {pie_metric} by {group_by} ({top_mode})")
             st.plotly_chart(fig3, use_container_width=True)
 
-            # Insight Table
-            st.markdown("#### Tabel Insight")
-            insight_disp = insight.copy()
-            insight_disp["total_spend_sum"] = insight_disp["total_spend_sum"].astype(float).round(2)
-            insight_disp["total_spend_avg"] = insight_disp["total_spend_avg"].astype(float).round(2)
-            st.dataframe(insight_disp, use_container_width=True, height=360)
+            st.dataframe(insight, use_container_width=True, height=360)
+
+    show_preprocessing_notes()
+
+# =========================
+# SUBPAGE: TREND YEARLY (NEW - menu #3)
+# =========================
+elif st.session_state.insight_subpage == "trend_yearly":
+    topbar = st.columns([1, 6])
+    with topbar[0]:
+        if st.button("⬅️ Back", use_container_width=True):
+            go("home")
+    with topbar[1]:
+        st.subheader("Tren Tahunan")
+        st.caption("Insight dipisah per tahun (2021, 2022, 2023) + keseluruhan. Bar & Pie dengan hover detail.")
+
+    if "invoice_date_year" not in df.columns:
+        st.error("Kolom `invoice_date_year` tidak ditemukan. Halaman tren tahunan butuh kolom itu.")
+        st.stop()
+    if "total_spend" not in df.columns:
+        st.error("Kolom `total_spend` tidak ditemukan.")
+        st.stop()
+
+    excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
+
+    controls = ["gender", "category", "quantity", "payment_method", "shopping_mall", "age_class", "price_class", "price"]
+    controls = [c for c in controls if c in df.columns and c not in excluded_controls]
+
+    left, right = st.columns([3, 1])
+
+    with right:
+        st.markdown("### Filter Parameter (global)")
+        st.caption("Filter ini berlaku untuk semua panel tahun.")
+
+        filter_state = {}
+        for col in controls:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                col_min = float(pd.to_numeric(df[col], errors="coerce").min())
+                col_max = float(pd.to_numeric(df[col], errors="coerce").max())
+                filter_state[col] = st.slider(col, col_min, col_max, (col_min, col_max))
+            else:
+                opts = sorted(df[col].dropna().astype(str).unique().tolist())
+                filter_state[col] = st.multiselect(col, options=opts, default=opts)
+
+        st.markdown("---")
+        group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
+        group_by = st.selectbox("Group by", options=group_by_options, index=0)
+
+        sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="year_sort")
+        top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True, key="year_top_mode")
+        top_n = st.slider("Top N", 5, 30, 10, disabled=(top_mode == "All"), key="year_top_n")
+        pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="year_pie_metric")
+
+    # Apply global filter once
+    df_global = apply_filters(df, filter_state)
+
+    def render_year_panel(title: str, df_panel: pd.DataFrame):
+        st.markdown(f"### {title}")
+
+        total_trx = len(df_panel)
+        total_spend = float(pd.to_numeric(df_panel["total_spend"], errors="coerce").sum())
+        avg_spend = float(pd.to_numeric(df_panel["total_spend"], errors="coerce").mean()) if total_trx > 0 else 0.0
+
+        k1, k2, k3 = st.columns(3)
+        with k1:
+            render_kpi("Jumlah Transaksi", fmt_int(total_trx), "panel ini")
+        with k2:
+            render_kpi("Total Spend", fmt_money(total_spend), "panel ini")
+        with k3:
+            render_kpi("Rata-rata Spend", fmt_money(avg_spend), "panel ini")
+
+        if total_trx == 0:
+            st.warning("Data kosong untuk panel ini.")
+            return
+
+        insight = insight_by(df_panel, group_by)
+        insight = insight.sort_values("transaksi_count" if sort_metric == "Jumlah Transaksi" else "total_spend_sum", ascending=False)
+        if top_mode == "Top N":
+            insight = insight.head(top_n)
+
+        rot = smart_xtick_rotation(insight[group_by].tolist())
+
+        fig1 = px.bar(insight, x=group_by, y="total_spend_sum",
+                      hover_data=["transaksi_count", "total_spend_avg"],
+                      title=f"Total Spend by {group_by}")
+        fig1.update_xaxes(tickangle=rot)
+        st.plotly_chart(fig1, use_container_width=True)
+
+        fig2 = px.bar(insight, x=group_by, y="transaksi_count",
+                      hover_data=["total_spend_sum", "total_spend_avg"],
+                      title=f"Jumlah Transaksi by {group_by}")
+        fig2.update_xaxes(tickangle=rot)
+        st.plotly_chart(fig2, use_container_width=True)
+
+        pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
+        fig3 = px.pie(insight, names=group_by, values=pie_value_col,
+                      hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                      title=f"Share {pie_metric} by {group_by}")
+        st.plotly_chart(fig3, use_container_width=True)
+
+        st.dataframe(insight, use_container_width=True, height=280)
+
+        st.markdown("---")
+
+    # Panels: All + 2021 + 2022 + 2023
+    years = [None, 2021, 2022, 2023]
+    for y in years:
+        if y is None:
+            render_year_panel("Semua Tahun", df_global)
+        else:
+            render_year_panel(f"Tahun {y}", df_global[df_global["invoice_date_year"] == y])
 
     show_preprocessing_notes()
 
