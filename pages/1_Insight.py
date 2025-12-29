@@ -17,21 +17,19 @@ def load_css(path: str = "assets/insight.css"):
 
 load_css()
 
-st.title("Page 1 — Insight Dashboard")
+st.title("Page 1 — Insight Dashboard Awal")
 
-# =========================
+
 # LOAD DATA
-# =========================
 uploaded = st.file_uploader("Upload CSV (final insight)", type=["csv"])
 if not uploaded:
     st.info("Upload CSV dulu untuk melihat dashboard insight.")
     st.stop()
-
 df = pd.read_csv(uploaded)
 
-# =========================
+
+
 # ROUTER
-# =========================
 if "insight_subpage" not in st.session_state:
     st.session_state.insight_subpage = "home"
 
@@ -45,9 +43,9 @@ def card_button(label: str, key: str, on_click_page: str, color_class="card-1", 
         go(on_click_page)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# =========================
+
+
 # HELPERS
-# =========================
 def fmt_int(x):
     try:
         return f"{int(x):,}"
@@ -115,9 +113,10 @@ def year_theme(year: int):
     colors = ["#22C55E", "#10B981", "#34D399", "#06B6D4", "#A7F3D0"]
     return panel_bg, colors, colors
 
-# =========================
+
+
+
 # HOME
-# =========================
 if st.session_state.insight_subpage == "home":
     st.subheader("Menu (Page 1)")
     st.caption("Klik kartu di bawah untuk membuka sub-halaman (masih di Page 1).")
@@ -138,9 +137,9 @@ if st.session_state.insight_subpage == "home":
     st.caption("Preview data:")
     st.dataframe(df.head(5), use_container_width=True)
 
-# =========================
+
+
 # SUBPAGE: VIEW DATASET
-# =========================
 elif st.session_state.insight_subpage == "view_dataset":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -166,13 +165,13 @@ elif st.session_state.insight_subpage == "view_dataset":
     st.markdown("---")
     st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=560)
 
-# =========================
-# SUBPAGE: INSIGHT PARAMETER (KAMU SUDAH PUNYA, DIRINGKAS)
-# =========================
+
+
+# SUBPAGE: INSIGHT PARAMETER 
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
     with topbar[0]:
-        if st.button("⬅️ Back", use_container_width=True):
+        if st.button("<- Back", use_container_width=True):
             go("home")
     with topbar[1]:
         st.subheader("Insight by Parameter")
@@ -245,9 +244,9 @@ elif st.session_state.insight_subpage == "insight_param":
             fig3 = px.pie(insight, names=group_by, values=pie_value_col, hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"], title=f"Share {pie_metric}")
             st.plotly_chart(fig3, use_container_width=True)
 
-# =========================
+
+
 # SUBPAGE: TREND YEARLY (3 KOLOM 2021|2022|2023)
-# =========================
 elif st.session_state.insight_subpage == "trend_yearly":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -286,7 +285,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
         group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
         group_by = st.selectbox("Group by", options=group_by_options, index=0)
 
-        # ✅ sorting untuk urutan kategori
+        # sorting untuk urutan kategori
         sort_metric = st.radio(
             "Sort by (urutkan kategori)",
             ["Total Spend", "Jumlah Transaksi"],
@@ -294,7 +293,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
             key="y_sort"
         )
 
-        # ✅ ini kunci: bar chart metriknya bisa berubah
+        #bar chart metriknya
         bar_metric = st.radio(
             "Bar berdasarkan",
             ["Total Spend", "Jumlah Transaksi"],
@@ -337,7 +336,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
 
             insight = insight_by(df_y, group_by)
 
-            # ✅ sorting kategori sesuai pilihan sort_metric
+            #sorting kategori sesuai pilihan sort_metric
             sort_col = "total_spend_sum" if sort_metric == "Total Spend" else "transaksi_count"
             insight = insight.sort_values(sort_col, ascending=False)
 
@@ -346,7 +345,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
 
             rot = smart_xtick_rotation(insight[group_by].tolist())
 
-            # ✅ BAR chart: metriknya ikut bar_metric
+            #BAR chart
             y_col = "total_spend_sum" if bar_metric == "Total Spend" else "transaksi_count"
             bar_title = "Total Spend" if bar_metric == "Total Spend" else "Jumlah Transaksi"
 
@@ -362,7 +361,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
             fig_bar.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
             st.plotly_chart(fig_bar, use_container_width=True)
 
-            # ✅ PIE chart: metriknya ikut pie_metric
+            #PIE chart
             pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
             fig_pie = px.pie(
                 insight,
@@ -386,7 +385,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
 elif st.session_state.insight_subpage == "trend_monthly":
     topbar = st.columns([1, 6])
     with topbar[0]:
-        if st.button("⬅️ Back", use_container_width=True):
+        if st.button(" <- Back", use_container_width=True):
             go("home")
     with topbar[1]:
         st.subheader("Tren Bulanan (Jan–Dec)")
@@ -467,7 +466,7 @@ elif st.session_state.insight_subpage == "trend_monthly":
         10: "Oct", 11: "Nov", 12: "Dec"
     }
 
-    # Grid mapping kamu: kiri (1,4,7,10), tengah (2,5,8,11), kanan (3,6,9,12)
+    # Grid mapping: kiri (1,4,7,10), tengah (2,5,8,11), kanan (3,6,9,12)
     colA = [1, 4, 7, 10]
     colB = [2, 5, 8, 11]
     colC = [3, 6, 9, 12]
@@ -524,9 +523,8 @@ elif st.session_state.insight_subpage == "trend_monthly":
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # =========================
-    # ATAS (tanpa scroll): 12 BAR CHART
-    # =========================
+
+    # ATAS : 12 BAR CHART
     with main_left:
         st.markdown("### Mini Bar Chart per Bulan (Jan–Dec)")
         a, b, c = st.columns(3, gap="medium")
@@ -546,9 +544,8 @@ elif st.session_state.insight_subpage == "trend_monthly":
         st.markdown("---")
         st.markdown("### Pie Chart per Bulan (scroll section)")
 
-        # =========================
-        # BAWAH (scroll): PIE CHART PER BULAN
-        # =========================
+
+        # BAWAH : PIE CHART PER BULAN
         a2, b2, c2 = st.columns(3, gap="medium")
         with a2:
             for m in colA:
