@@ -1,118 +1,26 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from pathlib import Path
 
 st.set_page_config(page_title="Insight", layout="wide")
 
 # =========================
-# CSS (UI Styling)
+# LOAD CSS FROM FILE
 # =========================
-def inject_css():
-    st.markdown(
-        """
-        <style>
-        .stApp { background-color: #ffffff; }
-        h1, h2, h3 { color: #1F3020; }
-        .stCaption { color: rgba(31,48,32,0.75); }
+def load_css(path: str = "assets/insight.css"):
+    css_path = Path(path)
+    if css_path.exists():
+        st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
+    else:
+        st.warning(f"CSS file tidak ditemukan: {path}")
 
-        /* Dataframe styling */
-        div[data-testid="stDataFrame"] {
-            border-radius: 12px;
-            border: 1px solid #E5E7EB;
-            padding: 8px;
-            background-color: #FAFAFA;
-        }
-
-        /* Card button base */
-        .card button {
-            width: 100% !important;
-            height: 92px !important;
-            border-radius: 18px !important;
-            border: none !important;
-            color: white !important;
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            text-align: left !important;
-            padding: 16px 18px !important;
-            white-space: pre-line !important;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.10) !important;
-        }
-        .card button:hover {
-            filter: brightness(1.05);
-            transform: translateY(-2px);
-            transition: all 0.15s ease-in-out;
-        }
-
-        /* Card color variants */
-        .card-1 button { background: linear-gradient(135deg, #3A4A3B, #1F3020) !important; }
-        .card-2 button { background: linear-gradient(135deg, #698A6B, #3A4A3B) !important; }
-        .card-3 button { background: linear-gradient(135deg, #A9C2AA, #698A6B) !important; color:#0F1C10 !important; }
-        .card-4 button { background: linear-gradient(135deg, #1F3020, #0F1C10) !important; }
-        .card-5 button { background: linear-gradient(135deg, #0F1C10, #3A4A3B) !important; }
-
-        /* Pretty tables */
-        .note-wrap {
-            background: #F6FAF6;
-            border: 1px solid #E3EEE4;
-            border-radius: 14px;
-            padding: 14px 14px 6px 14px;
-        }
-        table.pretty {
-            width: 100%;
-            border-collapse: collapse;
-            overflow: hidden;
-            border-radius: 12px;
-            margin: 10px 0 14px 0;
-        }
-        table.pretty thead th {
-            background: linear-gradient(135deg, #1F3020, #3A4A3B);
-            color: #ffffff;
-            padding: 10px 12px;
-            font-weight: 700;
-            font-size: 13px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-        }
-        table.pretty tbody td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #E6EFE7;
-            font-size: 13px;
-            color: #0F1C10;
-        }
-        table.pretty tbody tr:nth-child(odd) { background: #FFFFFF; }
-        table.pretty tbody tr:nth-child(even) { background: #EEF6EF; }
-        .pill {
-            display:inline-block;
-            padding: 3px 10px;
-            border-radius: 999px;
-            background: #DDECDD;
-            border: 1px solid #CBE0CC;
-            font-size: 12px;
-            font-weight: 700;
-            color: #1F3020;
-        }
-
-        /* KPI cards */
-        .kpi-wrap {
-            background: #F6FAF6;
-            border: 1px solid #E3EEE4;
-            border-radius: 14px;
-            padding: 12px 14px;
-        }
-        .kpi-title { color:#1F3020; font-weight:800; font-size:12px; opacity:0.9; }
-        .kpi-value { color:#0F1C10; font-weight:900; font-size:24px; margin-top:2px; }
-        .kpi-sub { color:#4B6650; font-size:12px; margin-top:2px; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-inject_css()
+load_css()
 
 st.title("Page 1 — Insight Dashboard")
 
 # =========================
-# Load data
+# LOAD DATA
 # =========================
 uploaded = st.file_uploader("Upload CSV (final insight)", type=["csv"])
 if not uploaded:
@@ -122,7 +30,7 @@ if not uploaded:
 df = pd.read_csv(uploaded)
 
 # =========================
-# Router subpage
+# ROUTER
 # =========================
 if "insight_subpage" not in st.session_state:
     st.session_state.insight_subpage = "home"
@@ -138,65 +46,7 @@ def card_button(label: str, key: str, on_click_page: str, color_class="card-1", 
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================
-# Bottom notes: preprocessing mappings
-# =========================
-def show_preprocessing_notes():
-    ageclass_desc = {
-        1: "≤ 20 tahun",
-        2: "21 – 30 tahun",
-        3: "31 – 40 tahun",
-        4: "41 – 50 tahun",
-        5: "51 – 60 tahun",
-        6: "61 – 70 tahun"
-    }
-
-    price_class_desc = {
-        0: "price ≤ 20",
-        1: "20 < price ≤ 50",
-        2: "50 < price ≤ 100",
-        3: "100 < price ≤ 500",
-        4: "500 < price ≤ 1000",
-        5: "1000 < price ≤ 2000",
-        6: "price > 2000"
-    }
-
-    st.markdown("---")
-    st.subheader("Keterangan Kolom Hasil Preprocessing")
-    st.caption("Dokumentasi mapping fitur buatan (age_class & price_class).")
-
-    age_rows = "".join([f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in ageclass_desc.items()])
-    st.markdown(
-        f"""
-        <div class="note-wrap">
-          <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Age Class (age_class)</h4>
-          <table class="pretty">
-            <thead><tr><th style="width:160px;">age_class</th><th>Rentang usia</th></tr></thead>
-            <tbody>{age_rows}</tbody>
-          </table>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    price_rows = "".join([f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()])
-    st.markdown(
-        f"""
-        <div class="note-wrap" style="margin-top:14px;">
-          <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Price Class (price_class)</h4>
-          <table class="pretty">
-            <thead><tr><th style="width:160px;">price_class</th><th>Rentang harga (price)</th></tr></thead>
-            <tbody>{price_rows}</tbody>
-          </table>
-          <div style="font-size:12px; color:#4B6650; margin-top:6px;">
-            Catatan: <i>price_class dibuat untuk mengelompokkan harga agar analisis lebih ringkas.</i>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# =========================
-# Helpers
+# HELPERS
 # =========================
 def fmt_int(x):
     try:
@@ -234,15 +84,12 @@ def insight_by(df_in: pd.DataFrame, group_col: str):
     )
 
 def smart_xtick_rotation(values) -> int:
-    try:
-        vals = [str(v) for v in values]
-        maxlen = max(len(v) for v in vals) if vals else 0
-        n = len(vals)
-        if maxlen >= 12 or n >= 8:
-            return 45
+    vals = [str(v) for v in values]
+    if not vals:
         return 0
-    except Exception:
-        return 0
+    maxlen = max(len(v) for v in vals)
+    n = len(vals)
+    return 45 if (maxlen >= 12 or n >= 8) else 0
 
 def apply_filters(df_in: pd.DataFrame, filter_state: dict) -> pd.DataFrame:
     df_f = df_in.copy()
@@ -254,6 +101,19 @@ def apply_filters(df_in: pd.DataFrame, filter_state: dict) -> pd.DataFrame:
             if sel:
                 df_f = df_f[df_f[col].astype(str).isin(sel)]
     return df_f
+
+def year_theme(year: int):
+    if year == 2021:
+        panel_bg = "background: linear-gradient(135deg, rgba(255,105,180,0.16), rgba(255,0,80,0.10));"
+        colors = ["#FF4D8D", "#FF7AAE", "#FF9BC6", "#FF2D6A", "#FFC0D9"]
+        return panel_bg, colors, colors
+    if year == 2022:
+        panel_bg = "background: linear-gradient(135deg, rgba(255,200,0,0.18), rgba(255,120,0,0.10));"
+        colors = ["#FFC400", "#FFB703", "#FB8500", "#FFD166", "#FFE08A"]
+        return panel_bg, colors, colors
+    panel_bg = "background: linear-gradient(135deg, rgba(34,197,94,0.16), rgba(0,180,180,0.10));"
+    colors = ["#22C55E", "#10B981", "#34D399", "#06B6D4", "#A7F3D0"]
+    return panel_bg, colors, colors
 
 # =========================
 # HOME
@@ -274,22 +134,9 @@ if st.session_state.insight_subpage == "home":
     with cols[4]:
         card_button("5) Placeholder", "card_5", "todo_5", color_class="card-5", disabled=True)
 
-    cols2 = st.columns(5)
-    with cols2[0]:
-        card_button("6) Placeholder", "card_6", "todo_6", color_class="card-1", disabled=True)
-    with cols2[1]:
-        card_button("7) Placeholder", "card_7", "todo_7", color_class="card-2", disabled=True)
-    with cols2[2]:
-        card_button("8) Placeholder", "card_8", "todo_8", color_class="card-3", disabled=True)
-    with cols2[3]:
-        card_button("9) Placeholder", "card_9", "todo_9", color_class="card-4", disabled=True)
-    with cols2[4]:
-        card_button("10) Placeholder", "card_10", "todo_10", color_class="card-5", disabled=True)
-
     st.markdown("---")
     st.caption("Preview data:")
     st.dataframe(df.head(5), use_container_width=True)
-    show_preprocessing_notes()
 
 # =========================
 # SUBPAGE: VIEW DATASET
@@ -316,14 +163,11 @@ elif st.session_state.insight_subpage == "view_dataset":
         n_rows = st.slider("Jumlah baris ditampilkan", 10, 500, 100)
 
     df_sorted = df.sort_values(by=sort_by, ascending=(ascending == "Ascending"))
-
     st.markdown("---")
-    st.caption("Hasil data setelah sorting:")
-    st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=520)
-    show_preprocessing_notes()
+    st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=560)
 
 # =========================
-# SUBPAGE: INSIGHT PARAMETER (existing)
+# SUBPAGE: INSIGHT PARAMETER (KAMU SUDAH PUNYA, DIRINGKAS)
 # =========================
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
@@ -332,14 +176,12 @@ elif st.session_state.insight_subpage == "insight_param":
             go("home")
     with topbar[1]:
         st.subheader("Insight by Parameter")
-        st.caption("Chart interaktif (hover detail). Ada sorting, Top N vs All, & pie metric.")
 
     if "total_spend" not in df.columns:
-        st.error("Kolom `total_spend` tidak ditemukan. Pastikan dataset final punya kolom total_spend.")
+        st.error("Kolom `total_spend` tidak ditemukan.")
         st.stop()
 
     excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
-
     controls = ["gender", "category", "quantity", "payment_method", "shopping_mall", "age_class", "price_class", "price"]
     controls = [c for c in controls if c in df.columns and c not in excluded_controls]
 
@@ -348,7 +190,6 @@ elif st.session_state.insight_subpage == "insight_param":
     with right:
         st.markdown("### Filter Parameter")
         filter_state = {}
-
         for col in controls:
             if pd.api.types.is_numeric_dtype(df[col]):
                 col_min = float(pd.to_numeric(df[col], errors="coerce").min())
@@ -361,7 +202,6 @@ elif st.session_state.insight_subpage == "insight_param":
         st.markdown("---")
         group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
         group_by = st.selectbox("Group by", options=group_by_options, index=0)
-
         sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True)
         top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True)
         top_n = st.slider("Top N", 5, 30, 10, disabled=(top_mode == "All"))
@@ -376,16 +216,15 @@ elif st.session_state.insight_subpage == "insight_param":
 
         k1, k2, k3 = st.columns(3)
         with k1:
-            render_kpi("Jumlah Transaksi", fmt_int(total_trx), "jumlah baris setelah filter")
+            render_kpi("Jumlah Transaksi", fmt_int(total_trx))
         with k2:
-            render_kpi("Total Spend", fmt_money(total_spend), "sum(total_spend)")
+            render_kpi("Total Spend", fmt_money(total_spend))
         with k3:
-            render_kpi("Rata-rata Spend", fmt_money(avg_spend), "mean(total_spend)")
+            render_kpi("Rata-rata Spend", fmt_money(avg_spend))
 
         st.markdown("---")
-
         if total_trx == 0:
-            st.warning("Data kosong setelah filter. Coba longgarkan filter.")
+            st.warning("Data kosong setelah filter.")
         else:
             insight = insight_by(df_f, group_by)
             insight = insight.sort_values("transaksi_count" if sort_metric == "Jumlah Transaksi" else "total_spend_sum", ascending=False)
@@ -394,30 +233,20 @@ elif st.session_state.insight_subpage == "insight_param":
 
             rot = smart_xtick_rotation(insight[group_by].tolist())
 
-            fig1 = px.bar(insight, x=group_by, y="total_spend_sum",
-                          hover_data=["transaksi_count", "total_spend_avg"],
-                          title=f"Total Spend by {group_by} ({top_mode})")
+            fig1 = px.bar(insight, x=group_by, y="total_spend_sum", hover_data=["transaksi_count", "total_spend_avg"], title="Total Spend")
             fig1.update_xaxes(tickangle=rot)
             st.plotly_chart(fig1, use_container_width=True)
 
-            fig2 = px.bar(insight, x=group_by, y="transaksi_count",
-                          hover_data=["total_spend_sum", "total_spend_avg"],
-                          title=f"Jumlah Transaksi by {group_by} ({top_mode})")
+            fig2 = px.bar(insight, x=group_by, y="transaksi_count", hover_data=["total_spend_sum", "total_spend_avg"], title="Jumlah Transaksi")
             fig2.update_xaxes(tickangle=rot)
             st.plotly_chart(fig2, use_container_width=True)
 
             pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
-            fig3 = px.pie(insight, names=group_by, values=pie_value_col,
-                          hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
-                          title=f"Share {pie_metric} by {group_by} ({top_mode})")
+            fig3 = px.pie(insight, names=group_by, values=pie_value_col, hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"], title=f"Share {pie_metric}")
             st.plotly_chart(fig3, use_container_width=True)
 
-            st.dataframe(insight, use_container_width=True, height=360)
-
-    show_preprocessing_notes()
-
 # =========================
-# SUBPAGE: TREND YEARLY (NEW - menu #3)
+# SUBPAGE: TREND YEARLY (3 KOLOM 2021|2022|2023)
 # =========================
 elif st.session_state.insight_subpage == "trend_yearly":
     topbar = st.columns([1, 6])
@@ -425,27 +254,24 @@ elif st.session_state.insight_subpage == "trend_yearly":
         if st.button("⬅️ Back", use_container_width=True):
             go("home")
     with topbar[1]:
-        st.subheader("Tren Tahunan")
-        st.caption("Insight dipisah per tahun (2021, 2022, 2023) + keseluruhan. Bar & Pie dengan hover detail.")
+        st.subheader("Tren Tahunan (2021 | 2022 | 2023)")
+        st.caption("3 kolom: KPI → Bar → Pie. Hover detail aktif.")
 
     if "invoice_date_year" not in df.columns:
-        st.error("Kolom `invoice_date_year` tidak ditemukan. Halaman tren tahunan butuh kolom itu.")
+        st.error("Kolom `invoice_date_year` tidak ditemukan.")
         st.stop()
     if "total_spend" not in df.columns:
         st.error("Kolom `total_spend` tidak ditemukan.")
         st.stop()
 
     excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
-
     controls = ["gender", "category", "quantity", "payment_method", "shopping_mall", "age_class", "price_class", "price"]
     controls = [c for c in controls if c in df.columns and c not in excluded_controls]
 
-    left, right = st.columns([3, 1])
+    main_left, main_right = st.columns([3, 1])
 
-    with right:
-        st.markdown("### Filter Parameter (global)")
-        st.caption("Filter ini berlaku untuk semua panel tahun.")
-
+    with main_right:
+        st.markdown("### Kontrol (Global)")
         filter_state = {}
         for col in controls:
             if pd.api.types.is_numeric_dtype(df[col]):
@@ -460,71 +286,72 @@ elif st.session_state.insight_subpage == "trend_yearly":
         group_by_options = [c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns]
         group_by = st.selectbox("Group by", options=group_by_options, index=0)
 
-        sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="year_sort")
-        top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True, key="year_top_mode")
-        top_n = st.slider("Top N", 5, 30, 10, disabled=(top_mode == "All"), key="year_top_n")
-        pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="year_pie_metric")
+        sort_metric = st.radio("Sort by", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_sort")
+        top_mode = st.radio("Tampilkan", ["Top N", "All"], horizontal=True, key="y_top_mode")
+        top_n = st.slider("Top N", 5, 25, 10, disabled=(top_mode == "All"), key="y_top_n")
+        pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="y_pie")
 
-    # Apply global filter once
     df_global = apply_filters(df, filter_state)
 
-    def render_year_panel(title: str, df_panel: pd.DataFrame):
-        st.markdown(f"### {title}")
+    def panel_year(container, year: int):
+        df_y = df_global[df_global["invoice_date_year"] == year].copy()
+        panel_bg, bar_colors, pie_colors = year_theme(year)
 
-        total_trx = len(df_panel)
-        total_spend = float(pd.to_numeric(df_panel["total_spend"], errors="coerce").sum())
-        avg_spend = float(pd.to_numeric(df_panel["total_spend"], errors="coerce").mean()) if total_trx > 0 else 0.0
+        with container:
+            st.markdown(f'<div class="year-panel" style="{panel_bg}">', unsafe_allow_html=True)
+            st.markdown(f'<div class="year-title">Tahun {year}</div>', unsafe_allow_html=True)
 
-        k1, k2, k3 = st.columns(3)
-        with k1:
-            render_kpi("Jumlah Transaksi", fmt_int(total_trx), "panel ini")
-        with k2:
-            render_kpi("Total Spend", fmt_money(total_spend), "panel ini")
-        with k3:
-            render_kpi("Rata-rata Spend", fmt_money(avg_spend), "panel ini")
+            total_trx = len(df_y)
+            total_spend = float(pd.to_numeric(df_y["total_spend"], errors="coerce").sum())
+            avg_spend = float(pd.to_numeric(df_y["total_spend"], errors="coerce").mean()) if total_trx > 0 else 0.0
 
-        if total_trx == 0:
-            st.warning("Data kosong untuk panel ini.")
-            return
+            k1, k2, k3 = st.columns(3)
+            with k1:
+                render_kpi("Transaksi", fmt_int(total_trx))
+            with k2:
+                render_kpi("Total Spend", fmt_money(total_spend))
+            with k3:
+                render_kpi("Avg Spend", fmt_money(avg_spend))
 
-        insight = insight_by(df_panel, group_by)
-        insight = insight.sort_values("transaksi_count" if sort_metric == "Jumlah Transaksi" else "total_spend_sum", ascending=False)
-        if top_mode == "Top N":
-            insight = insight.head(top_n)
+            if total_trx == 0:
+                st.warning("Data kosong.")
+                st.markdown("</div>", unsafe_allow_html=True)
+                return
 
-        rot = smart_xtick_rotation(insight[group_by].tolist())
+            insight = insight_by(df_y, group_by)
+            insight = insight.sort_values("transaksi_count" if sort_metric == "Jumlah Transaksi" else "total_spend_sum", ascending=False)
+            if top_mode == "Top N":
+                insight = insight.head(top_n)
 
-        fig1 = px.bar(insight, x=group_by, y="total_spend_sum",
-                      hover_data=["transaksi_count", "total_spend_avg"],
-                      title=f"Total Spend by {group_by}")
-        fig1.update_xaxes(tickangle=rot)
-        st.plotly_chart(fig1, use_container_width=True)
+            rot = smart_xtick_rotation(insight[group_by].tolist())
 
-        fig2 = px.bar(insight, x=group_by, y="transaksi_count",
-                      hover_data=["total_spend_sum", "total_spend_avg"],
-                      title=f"Jumlah Transaksi by {group_by}")
-        fig2.update_xaxes(tickangle=rot)
-        st.plotly_chart(fig2, use_container_width=True)
+            fig_bar = px.bar(
+                insight, x=group_by, y="total_spend_sum",
+                hover_data=["transaksi_count", "total_spend_avg"],
+                title="Total Spend",
+                color_discrete_sequence=bar_colors
+            )
+            fig_bar.update_xaxes(tickangle=rot)
+            fig_bar.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-        pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
-        fig3 = px.pie(insight, names=group_by, values=pie_value_col,
-                      hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
-                      title=f"Share {pie_metric} by {group_by}")
-        st.plotly_chart(fig3, use_container_width=True)
+            pie_value_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
+            fig_pie = px.pie(
+                insight, names=group_by, values=pie_value_col,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=f"Share {pie_metric}",
+                color_discrete_sequence=pie_colors
+            )
+            fig_pie.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-        st.dataframe(insight, use_container_width=True, height=280)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("---")
-
-    # Panels: All + 2021 + 2022 + 2023
-    years = [None, 2021, 2022, 2023]
-    for y in years:
-        if y is None:
-            render_year_panel("Semua Tahun", df_global)
-        else:
-            render_year_panel(f"Tahun {y}", df_global[df_global["invoice_date_year"] == y])
-
-    show_preprocessing_notes()
+    with main_left:
+        c2021, c2022, c2023 = st.columns(3, gap="medium")
+        panel_year(c2021, 2021)
+        panel_year(c2022, 2022)
+        panel_year(c2023, 2023)
 
 else:
     go("home")
