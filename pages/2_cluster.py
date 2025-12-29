@@ -154,53 +154,44 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# tabel ringkas cluster
-cluster_table = pd.DataFrame([
-    {"Cluster": "0", "Judul": "Senior Practical Shoppers", "Inti": "Tua, belanja sedikit, stabil"},
-    {"Cluster": "1", "Judul": "Active Young Buyers", "Inti": "Muda, aktif, potensial"},
-    {"Cluster": "2", "Judul": "Stable Mature Customers", "Inti": "Dewasa, konsisten"},
-    {"Cluster": "3", "Judul": "Impulse Young Shoppers", "Inti": "Muda, impulsif"},
-    {"Cluster": "4", "Judul": "Premium High-Value Customers", "Inti": "Sedikit tapi sangat bernilai"},
-])
+# tabel ringkas + keterangan cluster
+cluster_table = pd.DataFrame(
+    [
+        {
+            "Cluster": "0",
+            "Judul": "Senior Practical Shoppers",
+            "Inti": "Tua, belanja sedikit, stabil",
+            "Keterangan": "Pelanggan berusia lebih tua dengan pembelian rendah dan selektif. Segmen ini cenderung stabil namun kontribusi terhadap nilai transaksi relatif kecil."
+        },
+        {
+            "Cluster": "1",
+            "Judul": "Active Young Buyers",
+            "Inti": "Muda, aktif, potensial",
+            "Keterangan": "Pelanggan muda yang aktif berbelanja dengan nilai menengah. Memiliki potensi besar untuk dikembangkan menjadi pelanggan loyal melalui program retensi."
+        },
+        {
+            "Cluster": "2",
+            "Judul": "Stable Mature Customers",
+            "Inti": "Dewasa, konsisten",
+            "Keterangan": "Pelanggan dewasa dengan pola belanja yang konsisten dan terencana. Cocok untuk strategi membership dan personalisasi penawaran."
+        },
+        {
+            "Cluster": "3",
+            "Judul": "Impulse Young Shoppers",
+            "Inti": "Muda, impulsif",
+            "Keterangan": "Pelanggan muda dengan nilai belanja rendah dan pembelian cepat. Umumnya membeli karena kebutuhan kecil atau dorongan impulsif."
+        },
+        {
+            "Cluster": "4",
+            "Judul": "Premium High-Value Customers",
+            "Inti": "Sedikit tapi sangat bernilai",
+            "Keterangan": "Pelanggan bernilai tertinggi dengan total belanja sangat besar. Walaupun jumlahnya sedikit, kontribusinya terhadap pendapatan sangat signifikan."
+        },
+    ]
+)
 
-# deskripsi tiap cluster
-cluster_desc = {
-    "0": "Pelanggan berusia lebih tua dengan pembelian rendah dan selektif. Stabil namun kontribusi nilai relatif kecil.",
-    "": ,
-    "1": "Pelanggan muda yang aktif dan potensial untuk dikembangkan menjadi loyal customer.",
-    "": ,
-    "2": "Pelanggan dewasa dengan pola belanja konsisten dan terencana.",
-    "": ,
-    "3": "Pelanggan muda dengan belanja impulsif dan nilai rendah.",
-    "": ,
-    "4": "Pelanggan bernilai tinggi dengan kontribusi revenue paling besar."
-}
+st.markdown("<div class='panel-title'>Ringkasan Profil Cluster</div>", unsafe_allow_html=True)
+st.dataframe(cluster_table, use_container_width=True, hide_index=True)
 
-colA, colB = st.columns([1.05, 1.25])
-
-with colA:
-    st.markdown("<div class='panel-title'>Tabel Ringkas Cluster</div>", unsafe_allow_html=True)
-    st.dataframe(cluster_table, use_container_width=True, hide_index=True)
-
-with colB:
-    st.markdown("<div class='panel-title'>Keterangan Tiap Cluster</div>", unsafe_allow_html=True)
-    for cid in ["0", "1", "2", "3", "4"]:
-        title = cluster_table.loc[cluster_table["Cluster"] == cid, "Judul"].iloc[0]
-        core = cluster_table.loc[cluster_table["Cluster"] == cid, "Inti"].iloc[0]
-        desc = cluster_desc[cid]
-
-        st.markdown(
-            f"""
-            <div class="cluster-card c{cid}">
-                <div class="cluster-head">
-                    <div class="cluster-badge">Cluster {cid}</div>
-                    <div class="cluster-title">{title}</div>
-                </div>
-                <div class="cluster-core">{core}</div>
-                <div class="cluster-desc">{desc}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
 st.caption("Data sumber: CSV hasil clustering Fuzzy C-Means")
