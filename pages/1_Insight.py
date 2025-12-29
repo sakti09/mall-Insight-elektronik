@@ -348,7 +348,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
             )
             fig_bar.update_xaxes(tickangle=rot)
             fig_bar.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, use_container_width=True, key=f"y_{year}_bar_{group_by}_{y_col}_{top_mode}_{top_n}")
 
             pie_val = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
             fig_pie = px.pie(
@@ -360,7 +360,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
                 color_discrete_sequence=pie_colors
             )
             fig_pie.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_pie, use_container_width=True)
+            st.plotly_chart(fig_pie, use_container_width=True, key=f"y_{year}_pie_{group_by}_{pie_val}_{top_mode}_{top_n}")
 
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -371,7 +371,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
         panel_year(c2023, 2023)
 
 # =========================
-# SUBPAGE: TREND MONTHLY (MENU 4)
+# SUBPAGE: TREND MONTHLY (MENU 4) ✅ FIX DUPLICATE ID
 # =========================
 elif st.session_state.insight_subpage == "trend_monthly":
     topbar = st.columns([1, 6])
@@ -382,14 +382,12 @@ elif st.session_state.insight_subpage == "trend_monthly":
         st.subheader("Tren Bulanan (Jan–Dec)")
         st.caption("Atas: 12 mini bar chart (tanpa scroll). Bawah: pie chart per bulan (scroll).")
 
-    # --- required columns ---
     required_cols = ["invoice_date_year", "invoice_date_month", "total_spend"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         st.error(f"Kolom wajib tidak ditemukan: {missing}")
         st.stop()
 
-    # Controls (exclude date/time + age)
     excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
     controls = ["gender", "category", "quantity", "payment_method", "shopping_mall", "age_class", "price_class", "price"]
     controls = [c for c in controls if c in df.columns and c not in excluded_controls]
@@ -398,7 +396,6 @@ elif st.session_state.insight_subpage == "trend_monthly":
 
     with main_right:
         st.markdown("### Kontrol (Global)")
-
         year_pick = st.selectbox("Filter Tahun", ["All", "2021", "2022", "2023"], index=0, key="m_year_pick")
 
         filter_state = {}
@@ -424,13 +421,11 @@ elif st.session_state.insight_subpage == "trend_monthly":
 
         pie_metric = st.radio("Pie berdasarkan", ["Total Spend", "Jumlah Transaksi"], horizontal=True, key="m_pie")
 
-    # --- apply filter ---
-    df_global = apply_filters(df, filter_state)
+    df_global = apply_filters(df, filter_state).copy()
 
     if year_pick != "All":
-        df_global = df_global[df_global["invoice_date_year"] == int(year_pick)]
+        df_global = df_global[df_global["invoice_date_year"] == int(year_pick)].copy()
 
-    # normalize month values (just in case it's string/object)
     df_global["invoice_date_month"] = pd.to_numeric(df_global["invoice_date_month"], errors="coerce")
 
     month_names = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
@@ -438,7 +433,7 @@ elif st.session_state.insight_subpage == "trend_monthly":
     colB = [2, 5, 8, 11]
     colC = [3, 6, 9, 12]
 
-    def month_panel(container, m: int, show_pie: bool):
+    def month_panel(container, m: int, show_pie: bool, section_tag: str):
         df_m = df_global[df_global["invoice_date_month"] == m].copy()
 
         with container:
@@ -450,60 +445,52 @@ elif st.session_state.insight_subpage == "trend_monthly":
                 st.markdown("</div>", unsafe_allow_html=True)
                 return
 
-            # build insight
             insight = insight_by(df_m, group_by)
 
-            # make numeric safe
             insight["total_spend_sum"] = pd.to_numeric(insight["total_spend_sum"], errors="coerce")
             insight["transaksi_count"] = pd.to_numeric(insight["transaksi_count"], errors="coerce")
             insight["total_spend_avg"] = pd.to_numeric(insight["total_spend_avg"], errors="coerce")
 
-            # sorting
             sort_col = "total_spend_sum" if sort_metric == "Total Spend" else "transaksi_count"
             insight = insight.dropna(subset=[group_by, sort_col]).sort_values(sort_col, ascending=False)
 
             if top_mode == "Top N":
                 insight = insight.head(top_n)
 
-            # if still empty after cleaning
             if insight.empty:
-                st.caption("Insight kosong setelah cleaning (nilai NaN/0).")
+                st.caption("Insight kosong setelah cleaning.")
                 st.markdown("</div>", unsafe_allow_html=True)
                 return
 
             rot = smart_xtick_rotation(insight[group_by].tolist())
 
-            # BAR metric
+            # BAR
             y_col = "total_spend_sum" if bar_metric == "Total Spend" else "transaksi_count"
             title_bar = "Total Spend" if bar_metric == "Total Spend" else "Jumlah Transaksi"
 
-            bar_df = insight.copy()
-            bar_df[y_col] = pd.to_numeric(bar_df[y_col], errors="coerce")
-            bar_df = bar_df.dropna(subset=[y_col])
-            if bar_df.empty:
-                st.caption("Bar chart kosong (nilai NaN).")
-            else:
-                fig_bar = px.bar(
-                    bar_df,
-                    x=group_by,
-                    y=y_col,
-                    hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
-                    title=title_bar
-                )
-                fig_bar.update_xaxes(tickangle=rot)
-                fig_bar.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_bar, use_container_width=True)
+            fig_bar = px.bar(
+                insight,
+                x=group_by,
+                y=y_col,
+                hover_data=["total_spend_sum", "transaksi_count", "total_spend_avg"],
+                title=title_bar
+            )
+            fig_bar.update_xaxes(tickangle=rot)
+            fig_bar.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
 
-            # PIE metric (safe)
+            # ✅ KEY UNIK: bedakan antara section bar-only vs section pie
+            bar_key = f"m_{section_tag}_bar_month{m}_{group_by}_{y_col}_{year_pick}_{top_mode}_{top_n}"
+            st.plotly_chart(fig_bar, use_container_width=True, key=bar_key)
+
+            # PIE
             if show_pie:
                 pie_col = "total_spend_sum" if pie_metric == "Total Spend" else "transaksi_count"
-                pie_df = insight.copy()
+                pie_df = insight.dropna(subset=[group_by, pie_col]).copy()
                 pie_df[pie_col] = pd.to_numeric(pie_df[pie_col], errors="coerce")
-                pie_df = pie_df.dropna(subset=[group_by, pie_col])
                 pie_df = pie_df[pie_df[pie_col] > 0]
 
                 if pie_df.empty:
-                    st.caption("Pie chart tidak bisa ditampilkan (nilai 0/NaN semua).")
+                    st.caption("Pie chart tidak bisa ditampilkan (nilai 0/NaN).")
                 else:
                     fig_pie = px.pie(
                         pie_df,
@@ -513,7 +500,9 @@ elif st.session_state.insight_subpage == "trend_monthly":
                         title=f"Share {pie_metric}"
                     )
                     fig_pie.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
-                    st.plotly_chart(fig_pie, use_container_width=True)
+
+                    pie_key = f"m_{section_tag}_pie_month{m}_{group_by}_{pie_col}_{year_pick}_{top_mode}_{top_n}"
+                    st.plotly_chart(fig_pie, use_container_width=True, key=pie_key)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -521,21 +510,21 @@ elif st.session_state.insight_subpage == "trend_monthly":
         st.markdown("### Mini Bar Chart per Bulan (tanpa scroll)")
         a, b, c = st.columns(3, gap="medium")
         for m in colA:
-            month_panel(a, m, show_pie=False)
+            month_panel(a, m, show_pie=False, section_tag="top")
         for m in colB:
-            month_panel(b, m, show_pie=False)
+            month_panel(b, m, show_pie=False, section_tag="top")
         for m in colC:
-            month_panel(c, m, show_pie=False)
+            month_panel(c, m, show_pie=False, section_tag="top")
 
         st.markdown("---")
         st.markdown("### Pie Chart per Bulan (scroll)")
         a2, b2, c2 = st.columns(3, gap="medium")
         for m in colA:
-            month_panel(a2, m, show_pie=True)
+            month_panel(a2, m, show_pie=True, section_tag="bottom")
         for m in colB:
-            month_panel(b2, m, show_pie=True)
+            month_panel(b2, m, show_pie=True, section_tag="bottom")
         for m in colC:
-            month_panel(c2, m, show_pie=True)
+            month_panel(c2, m, show_pie=True, section_tag="bottom")
 
 else:
     go("home")
