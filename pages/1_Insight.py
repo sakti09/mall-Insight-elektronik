@@ -90,6 +90,17 @@ def inject_css():
             font-weight: 700;
             color: #1F3020;
         }
+
+        /* KPI cards */
+        .kpi-wrap {
+            background: #F6FAF6;
+            border: 1px solid #E3EEE4;
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+        .kpi-title { color:#1F3020; font-weight:800; font-size:12px; opacity:0.9; }
+        .kpi-value { color:#0F1C10; font-weight:900; font-size:24px; margin-top:2px; }
+        .kpi-sub { color:#4B6650; font-size:12px; margin-top:2px; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -174,7 +185,7 @@ def show_preprocessing_notes():
     """
     st.markdown(age_table_html, unsafe_allow_html=True)
 
-    # Price class table (NO rule code)
+    # Price class table
     price_rows = "".join(
         [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()]
     )
@@ -198,6 +209,46 @@ def show_preprocessing_notes():
     </div>
     """
     st.markdown(price_table_html, unsafe_allow_html=True)
+
+# =========================
+# Helpers: KPI & Insight table
+# =========================
+def fmt_int(x):
+    try:
+        return f"{int(x):,}"
+    except Exception:
+        return "-"
+
+def fmt_money(x):
+    try:
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "-"
+
+def render_kpi(title: str, value: str, subtitle: str = ""):
+    st.markdown(
+        f"""
+        <div class="kpi-wrap">
+            <div class="kpi-title">{title}</div>
+            <div class="kpi-value">{value}</div>
+            <div class="kpi-sub">{subtitle}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def insight_by(df_in: pd.DataFrame, group_col: str):
+    out = (
+        df_in.groupby(group_col, dropna=False)
+        .agg(
+            transaksi_count=("total_spend", "size"),
+            total_spend_sum=("total_spend", "sum"),
+            total_spend_avg=("total_spend", "mean"),
+        )
+        .reset_index()
+        .sort_values("total_spend_sum", ascending=False)
+    )
+    return out
 
 # =========================
 # HOME
@@ -258,7 +309,7 @@ elif st.session_state.insight_subpage == "view_dataset":
     with c2:
         ascending = st.radio("Order", ["Ascending", "Descending"], horizontal=True)
     with c3:
-        n_rows = st.slider("Jumlah baris ditampilkan", 10, 5000, 100)
+        n_rows = st.slider("Jumlah baris ditampilkan", 10, 500, 100)
 
     df_sorted = df.sort_values(by=sort_by, ascending=(ascending == "Ascending"))
 
@@ -269,7 +320,7 @@ elif st.session_state.insight_subpage == "view_dataset":
     show_preprocessing_notes()
 
 # =========================
-# SUBPAGE: INSIGHT PARAM (placeholder)
+# SUBPAGE: INSIGHT PARAMETER (NEW)
 # =========================
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
@@ -278,8 +329,111 @@ elif st.session_state.insight_subpage == "insight_param":
             go("home")
     with topbar[1]:
         st.subheader("Insight by Parameter")
+        st.caption("Ringkasan total_spend & jumlah transaksi, dengan kontrol filter parameter (tanpa age & tanggal).")
 
-    st.info("Bagian ini akan berisi chart & filter parameter.")
+    # ----------- Columns check -----------
+    required_cols = ["total_spend"]
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        st.error(f"Kolom wajib tidak ditemukan: {missing}. Pastikan dataset punya kolom `total_spend`.")
+        st.stop()
+
+    # ----------- Filter Controls (RIGHT) -----------
+    # Excluded from controls:
+    excluded_controls = {"age", "invoice_date_time", "invoice_date_day", "invoice_date_month", "invoice_date_year"}
+
+    # Allowed controls (only if exist in df)
+    controls = [
+        "gender",
+        "category",
+        "quantity",
+        "payment_method",
+        "shopping_mall",
+        "age_class",
+        "price_class",
+        "price",
+    ]
+    controls = [c for c in controls if c in df.columns and c not in excluded_controls]
+
+    left, right = st.columns([3, 1])
+
+    with right:
+        st.markdown("### Filter Parameter")
+        st.caption("Pilih nilai untuk memfilter data. Kosongkan untuk semua.")
+
+        # Build filters (multiselect for categoricals, slider for numeric)
+        filter_state = {}
+
+        for col in controls:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                # Numeric filter: min-max slider
+                col_min = float(pd.to_numeric(df[col], errors="coerce").min())
+                col_max = float(pd.to_numeric(df[col], errors="coerce").max())
+                if col_min == col_max:
+                    st.caption(f"{col}: hanya 1 nilai ({col_min})")
+                    filter_state[col] = (col_min, col_max)
+                else:
+                    filter_state[col] = st.slider(
+                        f"{col} (range)",
+                        min_value=col_min,
+                        max_value=col_max,
+                        value=(col_min, col_max),
+                    )
+            else:
+                # Categorical filter: multiselect
+                opts = sorted(df[col].dropna().astype(str).unique().tolist())
+                chosen = st.multiselect(col, options=opts, default=opts)
+                filter_state[col] = chosen
+
+        st.markdown("---")
+        group_by = st.selectbox(
+            "Group by (untuk tabel insight)",
+            options=[c for c in ["gender", "category", "payment_method", "shopping_mall", "age_class", "price_class", "quantity", "price"] if c in df.columns],
+            index=0
+        )
+        top_n = st.slider("Top N", 5, 30, 10)
+
+    # ----------- Apply filters -----------
+    df_f = df.copy()
+
+    for col, sel in filter_state.items():
+        if pd.api.types.is_numeric_dtype(df_f[col]):
+            lo, hi = sel
+            df_f = df_f[pd.to_numeric(df_f[col], errors="coerce").between(lo, hi)]
+        else:
+            # sel is list of strings
+            if sel:
+                df_f = df_f[df_f[col].astype(str).isin(sel)]
+
+    with left:
+        st.markdown("### Ringkasan (hasil filter)")
+
+        total_trx = len(df_f)
+        total_spend = float(pd.to_numeric(df_f["total_spend"], errors="coerce").sum())
+        avg_spend = float(pd.to_numeric(df_f["total_spend"], errors="coerce").mean()) if total_trx > 0 else 0.0
+
+        k1, k2, k3 = st.columns(3)
+        with k1:
+            render_kpi("Jumlah Transaksi", fmt_int(total_trx), "jumlah baris setelah filter")
+        with k2:
+            render_kpi("Total Spend", fmt_money(total_spend), "sum(total_spend)")
+        with k3:
+            render_kpi("Rata-rata Spend", fmt_money(avg_spend), "mean(total_spend)")
+
+        st.markdown("---")
+        st.caption("Tabel insight berdasarkan pilihan Group by (diurutkan dari total_spend terbesar).")
+
+        if total_trx == 0:
+            st.warning("Data kosong setelah filter. Coba longgarkan filter.")
+        else:
+            insight = insight_by(df_f, group_by).head(top_n)
+            # rapihin format
+            insight_disp = insight.copy()
+            for c in ["total_spend_sum", "total_spend_avg"]:
+                if c in insight_disp.columns:
+                    insight_disp[c] = insight_disp[c].astype(float).round(2)
+            st.dataframe(insight_disp, use_container_width=True, height=420)
+
     show_preprocessing_notes()
 
 else:
