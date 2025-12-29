@@ -54,6 +54,13 @@ def render_kpi(title: str, value: str, subtitle: str = ""):
 def safe_value_counts(s: pd.Series):
     return s.astype(str).fillna("NaN").value_counts()
 
+def stacked_counts(df_in, x_col, cluster_col):
+    tmp = df_in.copy()
+    tmp[x_col] = tmp[x_col].astype(str)
+    tmp[cluster_col] = tmp[cluster_col].astype(str)
+    ct = tmp.groupby([x_col, cluster_col]).size().reset_index(name="count")
+    return ct
+
 # upload data cluster
 st.sidebar.header("Upload Data")
 uploaded = st.sidebar.file_uploader("Upload CSV hasil clustering (FCM)", type=["csv"])
@@ -68,6 +75,10 @@ st.sidebar.success("CSV berhasil diupload")
 # deteksi kolom penting
 cluster_col = pick_col(df, ["cluster", "cluster_label", "class"])
 spend_col   = pick_col(df, ["total_spent", "total_spend", "spend", "amount"])
+cat_col     = pick_col(df, ["category", "kategori"])
+mall_col    = pick_col(df, ["shopping_mall", "mall"])
+gender_col  = pick_col(df, ["gender"])
+pay_col     = pick_col(df, ["payment_method", "payment"])
 
 if cluster_col is None:
     st.error("Kolom cluster tidak ditemukan.")
@@ -75,7 +86,7 @@ if cluster_col is None:
 
 df[cluster_col] = df[cluster_col].astype(str)
 
-# filter data
+# filter data (minimal: cluster)
 st.sidebar.header("Filters")
 clusters = sorted(df[cluster_col].unique().tolist())
 selected_clusters = st.sidebar.multiselect("Cluster", clusters, clusters)
@@ -119,6 +130,66 @@ with right:
         fig = px.bar(grp, x=cluster_col, y=spend_col, title="Total Spend per Cluster")
         st.plotly_chart(fig, use_container_width=True)
 
+# filter fokus mall (dipakai untuk grafik komposisi)
+st.subheader("Komposisi Cluster (Stacked Bar)")
+
+df_scope = df_f.copy()
+
+if mall_col:
+    mall_options = ["Semua Mall"] + sorted(df_scope[mall_col].astype(str).unique().tolist())
+    focus_mall = st.selectbox("Fokus Mall", mall_options, index=0)
+
+    if focus_mall != "Semua Mall":
+        df_scope = df_scope[df_scope[mall_col].astype(str) == focus_mall]
+
+# pilih dimensi untuk divisualkan
+dim_options = []
+dim_map = {}
+
+if cat_col:
+    dim_options.append("Category")
+    dim_map["Category"] = cat_col
+
+if mall_col:
+    dim_options.append("Shopping Mall")
+    dim_map["Shopping Mall"] = mall_col
+
+if gender_col:
+    dim_options.append("Gender")
+    dim_map["Gender"] = gender_col
+
+if pay_col:
+    dim_options.append("Payment Method")
+    dim_map["Payment Method"] = pay_col
+
+if len(dim_options) == 0:
+    st.info("Tidak ada kolom kategorikal yang terdeteksi (category/mall/gender/payment).")
+else:
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        dim_choice = st.selectbox("Pilih dimensi", dim_options, index=0)
+    with c2:
+        topk = st.slider("Tampilkan Top K (biar rapi)", 5, 20, 10)
+
+    x_col = dim_map[dim_choice]
+
+    # ambil top-k nilai pada dimensi supaya bar tidak terlalu banyak
+    top_vals = df_scope[x_col].astype(str).value_counts().head(topk).index.tolist()
+    df_plot = df_scope[df_scope[x_col].astype(str).isin(top_vals)].copy()
+
+    # hitung count dan plot stacked bar
+    ct = stacked_counts(df_plot, x_col, cluster_col)
+
+    fig = px.bar(
+        ct,
+        x=x_col,
+        y="count",
+        color=cluster_col,
+        title=f"Komposisi Cluster per {dim_choice} (Top {topk})" + (f" — Fokus: {focus_mall}" if mall_col else ""),
+    )
+    fig.update_layout(barmode="stack", xaxis_title=dim_choice, yaxis_title="Jumlah Transaksi")
+    st.plotly_chart(fig, use_container_width=True)
+
 # interpretasi cluster
 st.subheader("Interpretasi Cluster")
 
@@ -132,7 +203,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# tabel ringkas + keterangan cluster
 cluster_table = pd.DataFrame(
     [
         {
