@@ -130,50 +130,60 @@ div[data-testid="stDataFrame"] {
 
 /* =========================================================
    CLUSTER PAGE (pages/2_cluster.py)
-   Aman — hanya nambah class baru
-========================================================= */
-
-/* Section wrapper biar ada "card" yang konsisten */
-.cluster-card {
-  border-radius: 16px;
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-  background: linear-gradient(
-    135deg,
-    rgba(105,138,107,0.10),
-    rgba(169,194,170,0.14)
-  );
-  padding: 14px 14px 10px 14px;
-  margin-bottom: 14px;
-}
-
-/* Title kecil di dalam cluster card */
-.cluster-card-title {
-  font-weight: 900;
-  font-size: 14px;
-  color: #1F3020;
-  margin-bottom: 6px;
-}
-
-/* Helper text */
-.cluster-hint {
-  color: rgba(31,48,32,0.72);
-  font-size: 12px;
-  margin-top: -2px;
-  margin-bottom: 8px;
-}
-
-/* Expander sedikit lebih rapi */
-div[data-testid="stExpander"] {
+/* insight.css — khusus halaman 2_cluster.py */
+.kpi-cluster{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.06);
-  background: #FBFCFB;
+  padding: 14px 16px;
+  margin: 6px 0 10px 0;
 }
 
-/* Sidebar label biar lebih matching */
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-  color: #1F3020;
+.kpi-cluster .kpi-title{
+  font-size: 12px;
+  opacity: 0.80;
+  letter-spacing: 0.2px;
 }
+
+.kpi-cluster .kpi-value{
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.kpi-cluster .kpi-sub{
+  font-size: 12px;
+  opacity: 0.70;
+  margin-top: 4px;
+}
+
+/* Insight box: tambahkan class "insight-cluster" di 2_cluster.py agar tidak bentrok */
+.insight-cluster{
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.insight-cluster .insight-title{
+  font-weight: 700;
+  margin: 8px 0 6px 0;
+}
+
+.insight-cluster .insight-text{
+  opacity: 0.88;
+  line-height: 1.55;
+}
+
+.insight-cluster .insight-list{
+  margin-top: 8px;
+  padding-left: 18px;
+}
+
+.insight-cluster .insight-list li{
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+
 
