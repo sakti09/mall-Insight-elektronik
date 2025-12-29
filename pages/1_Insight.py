@@ -6,26 +6,15 @@ st.set_page_config(page_title="Insight", layout="wide")
 # =========================
 # CSS (UI Styling)
 # =========================
-def inject_card_css():
+def inject_css():
     st.markdown(
         """
         <style>
-        /* ===== Page background ===== */
-        .stApp {
-            background-color: #ffffff;
-        }
+        .stApp { background-color: #ffffff; }
+        h1, h2, h3 { color: #1F3020; }
+        .stCaption { color: rgba(31,48,32,0.75); }
 
-        /* ===== Title styling ===== */
-        h1, h2, h3 {
-            color: #1F3020;
-        }
-
-        /* ===== Caption text ===== */
-        .stCaption {
-            color: rgba(31,48,32,0.75);
-        }
-
-        /* ===== Dataframe styling ===== */
+        /* Dataframe styling */
         div[data-testid="stDataFrame"] {
             border-radius: 12px;
             border: 1px solid #E5E7EB;
@@ -33,7 +22,7 @@ def inject_card_css():
             background-color: #FAFAFA;
         }
 
-        /* ===== Card button base ===== */
+        /* Card button base */
         .card button {
             width: 100% !important;
             height: 92px !important;
@@ -47,26 +36,77 @@ def inject_card_css():
             white-space: pre-line !important;
             box-shadow: 0 8px 20px rgba(0,0,0,0.10) !important;
         }
-
         .card button:hover {
             filter: brightness(1.05);
             transform: translateY(-2px);
             transition: all 0.15s ease-in-out;
         }
 
-        /* ===== Card color variants ===== */
+        /* Card color variants */
         .card-1 button { background: linear-gradient(135deg, #3A4A3B, #1F3020) !important; }
         .card-2 button { background: linear-gradient(135deg, #698A6B, #3A4A3B) !important; }
         .card-3 button { background: linear-gradient(135deg, #A9C2AA, #698A6B) !important; color:#0F1C10 !important; }
         .card-4 button { background: linear-gradient(135deg, #1F3020, #0F1C10) !important; }
         .card-5 button { background: linear-gradient(135deg, #0F1C10, #3A4A3B) !important; }
+
+        /* Pretty tables */
+        .note-wrap {
+            background: #F6FAF6;
+            border: 1px solid #E3EEE4;
+            border-radius: 14px;
+            padding: 14px 14px 6px 14px;
+        }
+        table.pretty {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 12px;
+            margin: 10px 0 14px 0;
+        }
+        table.pretty thead th {
+            background: linear-gradient(135deg, #1F3020, #3A4A3B);
+            color: #ffffff;
+            padding: 10px 12px;
+            font-weight: 700;
+            font-size: 13px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        table.pretty tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #E6EFE7;
+            font-size: 13px;
+            color: #0F1C10;
+        }
+        table.pretty tbody tr:nth-child(odd) { background: #FFFFFF; }
+        table.pretty tbody tr:nth-child(even) { background: #EEF6EF; }
+        .pill {
+            display:inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: #DDECDD;
+            border: 1px solid #CBE0CC;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1F3020;
+        }
+        code.rule {
+            display:block;
+            background: #0F1C10;
+            color: #EAF4EA;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.15);
+            white-space: pre-wrap;
+            font-size: 12px;
+            line-height: 1.45;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-# ⬅️ WAJIB dipanggil sebelum UI
-inject_card_css()
+inject_css()
 
 st.title("Page 1 — Insight Dashboard")
 
@@ -81,7 +121,7 @@ if not uploaded:
 df = pd.read_csv(uploaded)
 
 # =========================
-# Router subpage (inside Page 1)
+# Router subpage
 # =========================
 if "insight_subpage" not in st.session_state:
     st.session_state.insight_subpage = "home"
@@ -97,7 +137,100 @@ def card_button(label: str, key: str, on_click_page: str, color_class="card-1", 
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================
-# HOME (menu kartu)
+# Bottom notes: preprocessing mappings
+# =========================
+def show_preprocessing_notes():
+    ageclass_desc = {
+        1: "≤ 20 tahun",
+        2: "21 – 30 tahun",
+        3: "31 – 40 tahun",
+        4: "41 – 50 tahun",
+        5: "51 – 60 tahun",
+        6: "61 – 70 tahun"
+    }
+
+    # Price class ranges (based on your map_price_class rule)
+    price_class_desc = {
+        0: "price ≤ 20",
+        1: "20 < price ≤ 50",
+        2: "50 < price ≤ 100",
+        3: "100 < price ≤ 500",
+        4: "500 < price ≤ 1000",
+        5: "1000 < price ≤ 2000",
+        6: "price > 2000"
+    }
+
+    st.markdown("---")
+    st.subheader("Keterangan Kolom Hasil Preprocessing")
+    st.caption("Tabel di bawah hanya sebagai dokumentasi mapping fitur buatan (age_class & price_class).")
+
+    # ===== Age class table =====
+    age_rows = "".join(
+        [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in ageclass_desc.items()]
+    )
+
+    age_table_html = f"""
+    <div class="note-wrap">
+      <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Age Class (age_class)</h4>
+      <table class="pretty">
+        <thead>
+          <tr>
+            <th style="width:160px;">age_class</th>
+            <th>Rentang usia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {age_rows}
+        </tbody>
+      </table>
+    </div>
+    """
+
+    st.markdown(age_table_html, unsafe_allow_html=True)
+
+    # ===== Price class table =====
+    price_rows = "".join(
+        [f"<tr><td><span class='pill'>{k}</span></td><td>{v}</td></tr>" for k, v in price_class_desc.items()]
+    )
+
+    price_table_html = f"""
+    <div class="note-wrap" style="margin-top:14px;">
+      <h4 style="margin: 4px 0 10px 0; color:#1F3020;">Price Class (price_class)</h4>
+      <table class="pretty">
+        <thead>
+          <tr>
+            <th style="width:160px;">price_class</th>
+            <th>Aturan rentang price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {price_rows}
+        </tbody>
+      </table>
+
+      <div style="margin: 6px 0 10px 0; color:#1F3020; font-weight:700;">Kode pengelompokan (rule)</div>
+      <code class="rule">def map_price_class(p):
+    if p &lt;= 20:
+        return 0
+    elif p &lt;= 50:
+        return 1
+    elif p &lt;= 100:
+        return 2
+    elif p &lt;= 500:
+        return 3
+    elif p &lt;= 1000:
+        return 4
+    elif p &lt;= 2000:
+        return 5
+    else:
+        return 6</code>
+    </div>
+    """
+
+    st.markdown(price_table_html, unsafe_allow_html=True)
+
+# =========================
+# HOME
 # =========================
 if st.session_state.insight_subpage == "home":
     st.subheader("Menu (Page 1)")
@@ -131,6 +264,8 @@ if st.session_state.insight_subpage == "home":
     st.caption("Preview data:")
     st.dataframe(df.head(5), use_container_width=True)
 
+    show_preprocessing_notes()
+
 # =========================
 # SUBPAGE: VIEW DATASET
 # =========================
@@ -163,6 +298,8 @@ elif st.session_state.insight_subpage == "view_dataset":
     st.caption("Hasil data setelah sorting:")
     st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=520)
 
+    show_preprocessing_notes()
+
 # =========================
 # SUBPAGE: INSIGHT PARAM (placeholder)
 # =========================
@@ -173,7 +310,9 @@ elif st.session_state.insight_subpage == "insight_param":
             go("home")
     with topbar[1]:
         st.subheader("Insight by Parameter")
+
     st.info("Bagian ini akan berisi chart & filter parameter.")
+    show_preprocessing_notes()
 
 else:
     go("home")
