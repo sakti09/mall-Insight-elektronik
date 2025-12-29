@@ -58,7 +58,7 @@ def safe_value_counts(s: pd.Series):
     return s.astype(str).fillna("NaN").value_counts()
 
 
-# LOAD DATA (A: repo file OR B: uploader)
+# LOAD DATA
 st.sidebar.header("Data Source")
 
 default_path = st.sidebar.text_input(
