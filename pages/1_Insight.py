@@ -22,49 +22,49 @@ def go(page_name: str):
 
 
 # UI: green clickable cards
-def card_button(label: str, emoji: str, key: str, on_click_page: str, disabled=False):
-    """
-    Green card-like button using HTML + st.button overlay.
-    """
+def inject_card_css():
     st.markdown(
-        f"""
-        <div style="
-            background: linear-gradient(135deg, #16a34a, #22c55e);
-            border: 1px solid rgba(0,0,0,0.08);
-            border-radius: 16px;
-            padding: 16px 14px;
+        """
+        <style>
+        div.stButton > button {
+            width: 100%;
             height: 90px;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: linear-gradient(135deg, #16a34a, #22c55e);
             color: white;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
+            font-size: 14px;
+            font-weight: 600;
             box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-        ">
-            <div style="display:flex; flex-direction:column; gap:6px;">
-                <div style="font-size:14px; opacity:0.95;">{label}</div>
-                <div style="font-size:11px; opacity:0.85;">Klik untuk buka</div>
-            </div>
-            <div style="font-size:28px;">{emoji}</div>
-        </div>
+            text-align: left;
+            padding: 14px 16px;
+        }
+        div.stButton > button:hover {
+            filter: brightness(0.98);
+            border-color: rgba(0,0,0,0.12);
+        }
+        </style>
         """,
         unsafe_allow_html=True,
     )
-    # tombol transparan di bawah kartu (biar bisa diklik)
-    clicked = st.button("Open", key=key, disabled=disabled, use_container_width=True)
-    if clicked:
+
+def card_button(label: str, emoji: str, key: str, on_click_page: str, disabled=False):
+    # tombolnya kita bikin kayak kartu
+    btn_label = f"{emoji}  {label}\n\nKlik untuk buka"
+    if st.button(btn_label, key=key, disabled=disabled, use_container_width=True):
         go(on_click_page)
+
 
 # HOME (grid of 10 icons)
 if st.session_state.insight_subpage == "home":
     st.subheader("Menu (Page 1)")
     st.caption("Klik kartu di bawah untuk membuka sub-halaman (masih di Page 1).")
 
-    # 10 cards (icon 1 aktif, sisanya placeholder)
     cols = st.columns(5)
     with cols[0]:
         card_button("1) View Dataset", "📄", "card_1", "view_dataset")
     with cols[1]:
-        card_button("2) Placeholder", "📊", "card_2", "todo_2", disabled=True)
+        card_button("2) Insight by Parameter", "📊", "card_2", "insight_param")  # nanti kamu isi
     with cols[2]:
         card_button("3) Placeholder", "🧩", "card_3", "todo_3", disabled=True)
     with cols[3]:
@@ -84,9 +84,6 @@ if st.session_state.insight_subpage == "home":
     with cols2[4]:
         card_button("10) Placeholder", "⚙️", "card_10", "todo_10", disabled=True)
 
-    st.markdown("---")
-    st.write("Preview cepat dataset (top 5):")
-    st.dataframe(df.head(5), use_container_width=True)
 
 
 # SUBPAGE: VIEW DATASET
