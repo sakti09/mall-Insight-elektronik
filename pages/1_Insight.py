@@ -5,9 +5,7 @@ from pathlib import Path
 
 st.set_page_config(page_title="Insight", layout="wide")
 
-# =========================
 # LOAD CSS FROM FILE
-# =========================
 def load_css(path: str = "assets/insight.css"):
     css_path = Path(path)
     if css_path.exists():
@@ -19,19 +17,14 @@ load_css()
 
 st.title("Page 1 — Insight Dashboard")
 
-# =========================
 # LOAD DATA
-# =========================
 uploaded = st.file_uploader("Upload CSV (final insight)", type=["csv"])
 if not uploaded:
     st.info("Upload CSV dulu untuk melihat dashboard insight.")
     st.stop()
-
 df = pd.read_csv(uploaded)
 
-# =========================
 # ROUTER
-# =========================
 if "insight_subpage" not in st.session_state:
     st.session_state.insight_subpage = "home"
 
@@ -45,9 +38,7 @@ def card_button(label: str, key: str, on_click_page: str, color_class="card-1", 
         go(on_click_page)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# =========================
 # HELPERS
-# =========================
 def fmt_int(x):
     try:
         return f"{int(x):,}"
@@ -115,9 +106,7 @@ def year_theme(year: int):
     colors = ["#22C55E", "#10B981", "#34D399", "#06B6D4", "#A7F3D0"]
     return panel_bg, colors, colors
 
-# =========================
 # HOME (MENU)
-# =========================
 if st.session_state.insight_subpage == "home":
     st.subheader("Menu (Page 1)")
     st.caption("Klik kartu di bawah untuk membuka sub-halaman (masih di Page 1).")
@@ -138,9 +127,7 @@ if st.session_state.insight_subpage == "home":
     st.caption("Preview data:")
     st.dataframe(df.head(5), use_container_width=True)
 
-# =========================
 # SUBPAGE: VIEW DATASET (MENU 1)
-# =========================
 elif st.session_state.insight_subpage == "view_dataset":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -166,9 +153,7 @@ elif st.session_state.insight_subpage == "view_dataset":
     st.markdown("---")
     st.dataframe(df_sorted.head(n_rows), use_container_width=True, height=560)
 
-# =========================
 # SUBPAGE: INSIGHT PARAM (MENU 2)
-# =========================
 elif st.session_state.insight_subpage == "insight_param":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -250,9 +235,7 @@ elif st.session_state.insight_subpage == "insight_param":
                           title=f"Share {pie_metric}")
             st.plotly_chart(fig3, use_container_width=True)
 
-# =========================
-# SUBPAGE: TREND YEARLY (MENU 3) ✅ FIXED
-# =========================
+# SUBPAGE: TREND YEARLY (MENU 3)
 elif st.session_state.insight_subpage == "trend_yearly":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -370,9 +353,7 @@ elif st.session_state.insight_subpage == "trend_yearly":
         panel_year(c2022, 2022)
         panel_year(c2023, 2023)
 
-# =========================
-# SUBPAGE: TREND MONTHLY (MENU 4) ✅ FIX DUPLICATE ID
-# =========================
+# SUBPAGE: TREND MONTHLY (MENU 4)
 elif st.session_state.insight_subpage == "trend_monthly":
     topbar = st.columns([1, 6])
     with topbar[0]:
@@ -478,7 +459,7 @@ elif st.session_state.insight_subpage == "trend_monthly":
             fig_bar.update_xaxes(tickangle=rot)
             fig_bar.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
 
-            # ✅ KEY UNIK: bedakan antara section bar-only vs section pie
+            # KEY UNIK
             bar_key = f"m_{section_tag}_bar_month{m}_{group_by}_{y_col}_{year_pick}_{top_mode}_{top_n}"
             st.plotly_chart(fig_bar, use_container_width=True, key=bar_key)
 
