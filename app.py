@@ -3,25 +3,19 @@ from pathlib import Path
 
 st.set_page_config(page_title="Mall Insight", layout="wide")
 
-# =========================
-# LOAD CSS (PAKAI insight.css, bukan mainpage.css)
-# =========================
+
+# LOAD CSS
 def load_css(path: str = "assets/insight.css"):
     css_path = Path(path)
     if css_path.exists():
         st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
-
 load_css()
 
-# =========================
 # HEADER
-# =========================
 st.title("Mall Insight Dashboard")
 st.caption("Landing page utama. Gunakan sidebar kiri untuk memilih halaman analisis.")
 
-# =========================
-# INFO BOX (gunakan class landing-box dari CSS)
-# =========================
+# INFO BOX 
 st.markdown(
     """
     <div class="landing-box">
